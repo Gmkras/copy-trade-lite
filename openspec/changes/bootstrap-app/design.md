@@ -31,7 +31,9 @@ DECIBEL_NETWORK     z.literal("testnet")
 MAX_ORDER_SIZE      z.coerce.number().positive().default(0.01)
 DB_PATH             z.string().default("./data/signals.db")
 ```
-Enforcement: `lib/env.ts` parses `process.env` once at module load and exports a frozen `env` object. On failure it throws an `Error` whose message lists each invalid variable with the expectation and a pointer to `.env.example`, never echoing values. `next.config.ts` imports `lib/env.ts` so the failure happens on `pnpm dev`/`pnpm build` startup, before any page compiles. Alternative: validate lazily in each route — rejected, a bad config must never reach a request.
+Enforcement: the schema and a `loadEnv()` function live in `lib/env.schema.ts` (no `server-only`); `lib/env.ts` adds `import "server-only"` and exports the frozen `env` parsed once at module load. On failure `loadEnv()` throws an `Error` whose message lists each invalid variable with the expectation and a pointer to `.env.example`, never echoing values. `next.config.ts` calls `loadEnv()` so the failure happens on `pnpm dev`/`pnpm build` startup, before any page compiles.
+
+*Implementation note (found in task 2.3):* the `server-only` package throws whenever it is imported outside the React Server environment, and `next.config.ts` runs in the plain-Node Next CLI process. Hence the split: config and (later) `tsx` scripts import `env.schema.ts`; app code imports `env.ts` and keeps the bundler-enforced guard. Alternative: validate lazily in each route — rejected, a bad config must never reach a request.
 
 ### D4. Tailwind v4 `@theme` tokens in `app/globals.css`
 ```

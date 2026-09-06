@@ -5,10 +5,10 @@
 
 ## 2. Environment validation (≈60 min)
 
-- [ ] 2.1 Create `lib/env.ts` with `import "server-only"`, the zod schema from design D3, one parse at module load, a frozen exported `env`, and an error message that lists each invalid variable with its expectation and points to `.env.example` without echoing values. Verify: `pnpm typecheck` exits 0.
-- [ ] 2.2 Create `.env.example` with every variable, a comment per variable (purpose, format, where to get it: app.decibel.trade/api or keygen script, geomi.dev, own wallet address, protocol cap 10 bps, testnet only, size cap, db path) and no real values. Verify: `git ls-files | grep env` lists only `.env.example`.
-- [ ] 2.3 Import `lib/env.ts` from `next.config.ts` so validation runs at startup. Verify: with a valid `.env`, `pnpm dev` starts and `http://localhost:3000` renders.
-- [ ] 2.4 Verify the guard: with `DECIBEL_NETWORK=mainnet` the dev server refuses to start and prints the testnet-only message; with `BUILDER_FEE_BPS=11` it prints the 0–10 bps message; with `PRIVATE_KEY` empty it names `PRIVATE_KEY` and shows no secret. Record the three outputs in the commit message body.
+- [x] 2.1 Create `lib/env.ts` with `import "server-only"`, the zod schema from design D3, one parse at module load, a frozen exported `env`, and an error message that lists each invalid variable with its expectation and points to `.env.example` without echoing values. Verify: `pnpm typecheck` exits 0.
+- [x] 2.2 Create `.env.example` with every variable, a comment per variable (purpose, format, where to get it: app.decibel.trade/api or keygen script, geomi.dev, own wallet address, protocol cap 10 bps, testnet only, size cap, db path) and no real values. Verify: `git ls-files | grep env` lists only `.env.example`.
+- [x] 2.3 Import `lib/env.ts` from `next.config.ts` so validation runs at startup. Verify: with a valid `.env`, `pnpm dev` starts and `http://localhost:3000` renders.
+- [x] 2.4 Verify the guard: with `DECIBEL_NETWORK=mainnet` the dev server refuses to start and prints the testnet-only message; with `BUILDER_FEE_BPS=11` it prints the 0–10 bps message; with `PRIVATE_KEY` empty it names `PRIVATE_KEY` and shows no secret. Record the three outputs in the commit message body.
 
 ## 3. Design tokens, fonts and base components (≈60 min)
 
