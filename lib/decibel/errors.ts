@@ -46,7 +46,9 @@ export function errorText(error: unknown): string {
  */
 export function isNotFoundError(error: unknown): boolean {
   const text = errorText(error).toLowerCase();
-  return text.includes("404") || text.includes("notfound") || text.includes("not found");
+  // A Move abort is a rejected transaction, never a "missing account" read.
+  if (text.includes("move abort")) return false;
+  return /\b404\b/.test(text) || text.includes("notfound") || text.includes("not found");
 }
 
 /**

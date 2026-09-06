@@ -23,5 +23,5 @@
 
 ## 5. Docs and review
 
-- [ ] 5.1 Update `README.md`: status table (MUST 1 and MUST 2 ✅), "Fund your testnet account" section (faucet → `pnpm mint` → `pnpm approve` → `pnpm order:once` with expected output), scripts table, and the "biggest risk" note mentioning the fee bound. Verify: a reader can go from a fresh `.env` to a real order following only the README.
-- [ ] 5.2 Run the P-R review prompt on the diff of this change against `specs/constitution.md` (safety first: any path to `placeOrder` without `toValidOrderSize`, any fee not from env, any mainnet reference, any secret printed, any swallowed error or success without hash). Verify: findings fixed in a separate `fix:` commit, or "no findings" recorded.
+- [x] 5.1 Update `README.md`: status table (MUST 1 and MUST 2 ✅), "Fund your testnet account" section (faucet → `pnpm mint` → `pnpm approve` → `pnpm order:once` with expected output), scripts table, and the "biggest risk" note mentioning the fee bound. Verify: a reader can go from a fresh `.env` to a real order following only the README.
+- [x] 5.2 Run the P-R review prompt on the diff of this change against `specs/constitution.md` (safety first: any path to `placeOrder` without `toValidOrderSize`, any fee not from env, any mainnet reference, any secret printed, any swallowed error or success without hash). Verify: findings fixed in a separate `fix:` commit, or "no findings" recorded.

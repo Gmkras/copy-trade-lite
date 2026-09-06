@@ -11,6 +11,19 @@ import "server-only";
 export { getDecibel, padAddress, type Decibel } from "./client";
 export { TradeError, humanizeSdkError, errorText, isNotFoundError, type TradeErrorCode } from "./errors";
 export {
+  PROTOCOL_MAX_BUILDER_FEE_BPS,
+  approveBuilderFee,
+  assertFeeBound,
+  assertTpSlSides,
+  getApprovedBuilderFee,
+  placeMarketOrder,
+  readBuilderApproval,
+  type BuilderApproval,
+  type MarketOrderInput,
+  type MarketOrderResult,
+  type OrderDeps,
+} from "./orders";
+export {
   baseSymbol,
   floorToLot,
   formatAmount,
