@@ -9,7 +9,7 @@ import "server-only";
  * Scripts import the underlying modules directly instead (see client.ts).
  */
 export { getDecibel, padAddress, type Decibel } from "./client";
-export { TradeError, humanizeSdkError, errorText, type TradeErrorCode } from "./errors";
+export { TradeError, humanizeSdkError, errorText, isNotFoundError, type TradeErrorCode } from "./errors";
 export {
   baseSymbol,
   floorToLot,

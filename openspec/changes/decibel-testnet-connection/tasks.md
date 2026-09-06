@@ -10,9 +10,9 @@
 
 ## 3. Smoke, keygen and funding scripts (≈60 min)
 
-- [ ] 3.1 Create `scripts/_env.ts` (loads `.env` with `process.loadEnvFile` in try/catch, exports `run(main)` that prints `TradeError` messages and exits 1 on failure, `--verbose` prints the cause) and `scripts/smoke.ts` (wallet, subaccount, open perp markets, BTC/USD mid, equity). Verify: `pnpm smoke` prints the five items with real values and exits 0; with a wrong `APTOS_NODE_API_KEY` it exits 1 with the "API key was rejected" message and no stack trace.
-- [ ] 3.2 Create `scripts/keygen.ts` (generates an Ed25519 account, prints address and the private key with a warning that it is meant for `.env` only). Verify: running it prints a new `0x…` address and a key string; nothing is written to disk.
-- [ ] 3.3 Create `scripts/mint-usdc.ts [amount]` per design D7: check `availableRestrictedMintFor(wallet)` and reset timestamp, call `usdc::restricted_mint(amount_u64)`, then `write.deposit(units, subaccountAddr)`, print both hashes and the new equity. Verify: `pnpm mint` on this account exits 0 and `pnpm smoke` then shows equity > 0; running with an amount above the allowance exits 1 with the allowance message before any transaction.
+- [x] 3.1 Create `scripts/_env.ts` (loads `.env` with `process.loadEnvFile` in try/catch, exports `run(main)` that prints `TradeError` messages and exits 1 on failure, `--verbose` prints the cause) and `scripts/smoke.ts` (wallet, subaccount, open perp markets, BTC/USD mid, equity). Verify: `pnpm smoke` prints the five items with real values and exits 0; with a wrong `APTOS_NODE_API_KEY` it exits 1 with the "API key was rejected" message and no stack trace.
+- [x] 3.2 Create `scripts/keygen.ts` (generates an Ed25519 account, prints address and the private key with a warning that it is meant for `.env` only). Verify: running it prints a new `0x…` address and a key string; nothing is written to disk.
+- [x] 3.3 Create `scripts/mint-usdc.ts [amount]` per design D7: check `availableRestrictedMintFor(wallet)` and reset timestamp, call `usdc::restricted_mint(amount_u64)`, then `write.deposit(units, subaccountAddr)`, print both hashes and the new equity. Verify: `pnpm mint` on this account exits 0 and `pnpm smoke` then shows equity > 0; running with an amount above the allowance exits 1 with the allowance message before any transaction.
 
 ## 4. Builder fee approval and first real order (≈75 min)
 

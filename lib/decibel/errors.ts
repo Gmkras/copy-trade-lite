@@ -40,6 +40,16 @@ export function errorText(error: unknown): string {
 }
 
 /**
+ * True when the trading API says the (sub)account does not exist yet. That is
+ * the normal state before the first deposit, not a failure: callers treat it
+ * as "empty account" (equity 0, no positions, no orders).
+ */
+export function isNotFoundError(error: unknown): boolean {
+  const text = errorText(error).toLowerCase();
+  return text.includes("404") || text.includes("notfound") || text.includes("not found");
+}
+
+/**
  * Maps raw SDK / Aptos / network errors to plain-language TradeErrors.
  * The original error is always kept on `cause`; nothing is hidden.
  */
