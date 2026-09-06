@@ -10,3 +10,15 @@ import "server-only";
  */
 export { getDecibel, padAddress, type Decibel } from "./client";
 export { TradeError, humanizeSdkError, errorText, type TradeErrorCode } from "./errors";
+export {
+  baseSymbol,
+  floorToLot,
+  formatAmount,
+  fromChainUnits,
+  roundToTick,
+  toAggressiveLimitPrice,
+  toChainUnits,
+  toTickPrice,
+  toValidOrderSize,
+  type MarketPrecision,
+} from "./units";

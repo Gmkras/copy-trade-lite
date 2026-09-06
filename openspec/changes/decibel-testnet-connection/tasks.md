@@ -5,8 +5,8 @@
 
 ## 2. Chain units with tests (≈45 min)
 
-- [ ] 2.1 Create `lib/decibel/units.ts` (`toChainUnits`, `fromChainUnits`, `roundToTick`, `floorToLot`, `toValidOrderSize`, `toAggressiveLimitPrice`) per design D3 with plain-language range messages. Verify: `pnpm typecheck` exits 0.
-- [ ] 2.2 Create `lib/decibel/units.test.ts` covering: exact conversions; tick rounding (64123.456 → 64123.5 at tick 0.1); lot flooring (0.0015 → 0.001); rejections for 0, negative, NaN, below minimum, above `MAX_ORDER_SIZE` with the message naming the range; aggressive price rounds up for buys and down for sells. Verify: `pnpm test` reports all tests passing.
+- [x] 2.1 Create `lib/decibel/units.ts` (`toChainUnits`, `fromChainUnits`, `roundToTick`, `floorToLot`, `toValidOrderSize`, `toAggressiveLimitPrice`) per design D3 with plain-language range messages. Verify: `pnpm typecheck` exits 0.
+- [x] 2.2 Create `lib/decibel/units.test.ts` covering: exact conversions; tick rounding (64123.456 → 64123.5 at tick 0.1); lot flooring (0.0015 → 0.001); rejections for 0, negative, NaN, below minimum, above `MAX_ORDER_SIZE` with the message naming the range; aggressive price rounds up for buys and down for sells. Verify: `pnpm test` reports all tests passing.
 
 ## 3. Smoke, keygen and funding scripts (≈60 min)
 
