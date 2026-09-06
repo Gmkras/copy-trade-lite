@@ -1,8 +1,8 @@
 ## 1. Persistence with node:sqlite (≈60 min)
 
-- [ ] 1.1 Create `lib/signals/db.ts` (lazy `DatabaseSync` at `DB_PATH`, parent dir created, WAL + foreign keys, `CREATE TABLE IF NOT EXISTS` for `signals` and `signal_copies` with indexes per design D1) and a throwaway route that inserts and reads one row to prove `node:sqlite` works inside a Next Route Handler under Turbopack. Verify: `pnpm dev` + `curl` the throwaway route returns the row; `data/signals.db` appears and is gitignored; remove the throwaway route; `pnpm typecheck` exits 0.
-- [ ] 1.2 Create `lib/signals/math.ts` (`tpSlPrices`, `isExpired`, `describe`) with `lib/signals/math.test.ts` (up/down price math, expiry boundary, sentence wording). Verify: `pnpm test` green.
-- [ ] 1.3 Create `lib/signals/repo.ts` (`createRepo(db)` with `createSignal`, `listSignals`, `getSignal`, `addCopy`, `authorStats`; zod-parsed rows) plus `lib/signals/repo.test.ts` against `:memory:` (create → list order → copy count → author stats → get with copies → unknown id null). Verify: `pnpm test` green; `pnpm typecheck` exits 0.
+- [x] 1.1 Create `lib/signals/db.ts` (lazy `DatabaseSync` at `DB_PATH`, parent dir created, WAL + foreign keys, `CREATE TABLE IF NOT EXISTS` for `signals` and `signal_copies` with indexes per design D1) and a throwaway route that inserts and reads one row to prove `node:sqlite` works inside a Next Route Handler under Turbopack. Verify: `pnpm dev` + `curl` the throwaway route returns the row; `data/signals.db` appears and is gitignored; remove the throwaway route; `pnpm typecheck` exits 0.
+- [x] 1.2 Create `lib/signals/math.ts` (`tpSlPrices`, `isExpired`, `describe`) with `lib/signals/math.test.ts` (up/down price math, expiry boundary, sentence wording). Verify: `pnpm test` green.
+- [x] 1.3 Create `lib/signals/repo.ts` (`createRepo(db)` with `createSignal`, `listSignals`, `getSignal`, `addCopy`, `authorStats`; zod-parsed rows) plus `lib/signals/repo.test.ts` against `:memory:` (create → list order → copy count → author stats → get with copies → unknown id null). Verify: `pnpm test` green; `pnpm typecheck` exits 0.
 
 ## 2. Signal contract and routes (≈75 min)
 

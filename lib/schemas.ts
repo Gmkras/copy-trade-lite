@@ -94,6 +94,43 @@ export type AccountState = {
   updatedAt: number;
 };
 
+/** A posted trade idea (GET /api/signals item). */
+export type Signal = {
+  id: string;
+  author: string;
+  market: string;
+  symbol: string;
+  side: OrderSide;
+  entryPrice: number;
+  tpPct: number;
+  slPct: number;
+  tpPrice: number;
+  slPrice: number;
+  holdHours: number;
+  size: number;
+  note: string | null;
+  createdAt: number;
+  expiresAt: number;
+  outcome: "tp" | "sl" | "expired" | null;
+  copyCount: number;
+};
+
+export type SignalCopy = {
+  id: string;
+  signalId: string;
+  copier: string;
+  size: number;
+  fillPrice: number;
+  txHash: string;
+  createdAt: number;
+};
+
+export type AuthorStats = {
+  author: string;
+  ideas: number;
+  copies: number;
+};
+
 /** POST /api/order response. */
 export type OrderReceipt = {
   transactionHash: string;
