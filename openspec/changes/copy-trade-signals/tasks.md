@@ -13,8 +13,8 @@
 
 ## 3. Feed and Post an idea (≈75 min)
 
-- [ ] 3.1 Create `components/SignalCard.tsx` and `components/Feed.tsx` (client list with `usePoll("/api/signals", 10000)`; empty state "No ideas yet — post the first one"; card per design D8) and replace `app/page.tsx` with the feed page. Verify with agent-browser at 375 px: cards show initial, "went Up on BTC · Xm ago", TP/SL pills, "copied N×", live/expired label; the yellow Copy navigates to `/signals/[id]`; with an empty DB the empty state shows.
-- [ ] 3.2 Create `components/PostIdeaSheet.tsx` (Sheet form: name, coin pills, Up/Down, TP %, SL %, hold hours, size, note; live entry price read-only from `/api/price`; TP/SL previews in dollars via `tpSlPrices`; `postEnvelope("/api/signals")`; toasts; closes on success and triggers feed refresh). Verify with agent-browser: change TP 3 → 5 updates the preview; post an idea → sheet closes, success toast, new card first in the feed; TP 0 → server message shown in a toast, sheet stays open.
+- [x] 3.1 Create `components/SignalCard.tsx` and `components/Feed.tsx` (client list with `usePoll("/api/signals", 10000)`; empty state "No ideas yet — post the first one"; card per design D8) and replace `app/page.tsx` with the feed page. Verify with agent-browser at 375 px: cards show initial, "went Up on BTC · Xm ago", TP/SL pills, "copied N×", live/expired label; the yellow Copy navigates to `/signals/[id]`; with an empty DB the empty state shows.
+- [x] 3.2 Create `components/PostIdeaSheet.tsx` (Sheet form: name, coin pills, Up/Down, TP %, SL %, hold hours, size, note; live entry price read-only from `/api/price`; TP/SL previews in dollars via `tpSlPrices`; `postEnvelope("/api/signals")`; toasts; closes on success and triggers feed refresh). Verify with agent-browser: change TP 3 → 5 updates the preview; post an idea → sheet closes, success toast, new card first in the feed; TP 0 → server message shown in a toast, sheet stays open.
 
 ## 4. Signal detail with chart and one-tap copy (≈90 min)
 

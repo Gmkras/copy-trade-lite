@@ -1,0 +1,59 @@
+"use client";
+
+import { useState } from "react";
+
+import { PostIdeaSheet } from "@/components/PostIdeaSheet";
+import { SignalCard } from "@/components/SignalCard";
+import { usePoll } from "@/hooks/usePoll";
+import type { Market, SignalList } from "@/lib/schemas";
+
+type FeedProps = {
+  initial: SignalList;
+  markets: Market[];
+  authorName?: string;
+};
+
+const FEED_POLL_MS = 10_000;
+
+/** The social feed: ideas as cards, newest first, plus the Post an idea sheet. */
+export function Feed({ initial, markets, authorName = "You" }: FeedProps) {
+  const feed = usePoll<SignalList>("/api/signals", FEED_POLL_MS);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const data = feed.data ?? initial;
+  const statsByAuthor = new Map(data.authors.map((a) => [a.author, a]));
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl">Ideas</h1>
+        <div className="flex items-center gap-2">
+          {feed.stale ? <span className="rounded-full border border-line px-2 py-0.5 text-xs text-muted">couldn&apos;t refresh</span> : null}
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className="min-h-11 rounded-full border border-text px-4 font-display text-base font-medium text-text"
+          >
+            Post an idea
+          </button>
+        </div>
+      </div>
+
+      {data.signals.length === 0 ? (
+        <div className="rounded-card border border-line bg-surface p-6 text-center">
+          <p className="font-display text-lg">No ideas yet — post the first one.</p>
+          <p className="mt-1 text-sm text-muted">Say where you think a coin goes; anyone can copy it with one tap.</p>
+        </div>
+      ) : (
+        data.signals.map((signal) => <SignalCard key={signal.id} signal={signal} stats={statsByAuthor.get(signal.author)} now={data.updatedAt} />)
+      )}
+
+      <PostIdeaSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        markets={markets}
+        authorName={authorName}
+        onPosted={() => feed.refresh()}
+      />
+    </div>
+  );
+}
