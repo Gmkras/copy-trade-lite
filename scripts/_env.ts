@@ -20,10 +20,19 @@ export function loadDotEnv(): void {
   }
 }
 
+/**
+ * Exits on the next tick instead of synchronously: on Windows, calling
+ * process.exit() while the SDK's sockets are still closing trips a libuv
+ * assertion (UV_HANDLE_CLOSING) and turns a clean exit into a crash code.
+ */
+function exitSoon(code: number): void {
+  setTimeout(() => process.exit(code), 150);
+}
+
 export function run(main: () => Promise<void>): void {
   loadDotEnv();
   main()
-    .then(() => process.exit(0))
+    .then(() => exitSoon(0))
     .catch((error: unknown) => {
       const message =
         error instanceof TradeError
@@ -38,7 +47,7 @@ export function run(main: () => Promise<void>): void {
       } else {
         console.error("  (run with --verbose to see the underlying error)");
       }
-      process.exit(1);
+      exitSoon(1);
     });
 }
 

@@ -60,7 +60,8 @@ export function humanizeSdkError(error: unknown): TradeError {
   const text = raw.toLowerCase();
   const withCause = { cause: error };
 
-  if (text.includes("401") || text.includes("anonymous") || text.includes("unauthorized")) {
+  // Word boundaries: hex addresses contain digit runs like "401" that must not match.
+  if (/\b401\b/.test(text) || text.includes("anonymous requests") || text.includes("unauthorized")) {
     return new TradeError(
       "API_KEY_REJECTED",
       `Your Geomi API key was rejected. Create a Testnet key at ${GEOMI_URL} and put it in APTOS_NODE_API_KEY.`,
@@ -103,15 +104,21 @@ export function humanizeSdkError(error: unknown): TradeError {
     );
   }
 
-  if (text.includes("rejected") || text.includes("aborted") || text.includes("vm_status")) {
+  if (text.includes("move abort") || text.includes("rejected") || text.includes("aborted") || text.includes("vm_status")) {
     return new TradeError(
       "TX_REJECTED",
-      `The transaction was rejected by the chain: ${shorten(raw)}`,
+      `The transaction was rejected by the chain: ${moveAbortReason(raw) ?? shorten(raw)}`,
       withCause,
     );
   }
 
   return new TradeError("UNKNOWN", `Something went wrong: ${shorten(raw)}`, withCause);
+}
+
+/** "Move abort in 0x…::module: ECODE(0x1)" → "module: ECODE". */
+function moveAbortReason(text: string): string | null {
+  const match = /Move abort in 0x[0-9a-f]+::([a-z_0-9]+):\s*([A-Z_0-9]+)/i.exec(text);
+  return match ? `${match[1]}: ${match[2]}` : null;
 }
 
 function shorten(text: string, max = 160): string {

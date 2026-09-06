@@ -16,6 +16,9 @@ run(async () => {
   console.log(`wallet      ${d.walletAddr}`);
   console.log(`subaccount  ${d.subaccountAddr}`);
   console.log(`builder     ${d.builderAddr}  fee ${d.feeBps} bps  max order ${d.maxOrderSize}`);
+  if (d.builderAddr === d.walletAddr) {
+    console.log("            ⚠ BUILDER_ADDRESS is your wallet; the chain expects a Decibel subaccount. Use the subaccount line above.");
+  }
 
   const apt = await d.read.deps.aptos.getAccountAPTAmount({ accountAddress: d.walletAddr });
   console.log(`gas         ${money(apt / 1e8, 4)} APT${apt === 0 ? "  ← empty: get testnet APT at https://aptos.dev/network/faucet" : ""}`);
