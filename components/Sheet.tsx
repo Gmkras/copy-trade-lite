@@ -38,6 +38,9 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
         open ? "pointer-events-auto" : "pointer-events-none",
       ].join(" ")}
       aria-hidden={!open}
+      // `inert` removes the closed sheet from the tab order and accessibility tree,
+      // so hidden content is never focusable (React 19 supports it as a boolean prop).
+      inert={!open}
     >
       <button
         type="button"

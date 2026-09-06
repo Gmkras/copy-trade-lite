@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 type ToastVariant = "info" | "success" | "error";
 
@@ -28,8 +37,10 @@ const AUTO_DISMISS_MS = 4000;
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(1);
+  const timers = useRef(new Map<number, number>());
 
   const dismiss = useCallback((id: number) => {
+    timers.current.delete(id);
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
@@ -38,10 +49,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const id = nextId.current++;
       const toast: Toast = { id, message, variant: options.variant ?? "info", link: options.link };
       setToasts((current) => [...current, toast]);
-      window.setTimeout(() => dismiss(id), AUTO_DISMISS_MS);
+      timers.current.set(
+        id,
+        window.setTimeout(() => dismiss(id), AUTO_DISMISS_MS),
+      );
     },
     [dismiss],
   );
+
+  // Clear pending auto-dismiss timers if the provider ever unmounts.
+  useEffect(() => {
+    const pending = timers.current;
+    return () => {
+      pending.forEach((timer) => window.clearTimeout(timer));
+      pending.clear();
+    };
+  }, []);
 
   const value = useMemo(() => ({ show }), [show]);
 
@@ -58,10 +81,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={toast.id}
             role="status"
             className={[
-              "pointer-events-auto w-full max-w-lg rounded-card border px-4 py-3 text-base shadow-none",
-              toast.variant === "success" && "border-up/40 bg-surface text-text",
-              toast.variant === "error" && "border-down/40 bg-surface text-text",
-              toast.variant === "info" && "border-line bg-surface text-text",
+              "pointer-events-auto w-full max-w-lg rounded-card border bg-surface px-4 py-3 text-base text-text",
+              toast.variant === "success" && "border-up/40",
+              toast.variant === "error" && "border-down/40",
+              toast.variant === "info" && "border-line",
             ]
               .filter(Boolean)
               .join(" ")}

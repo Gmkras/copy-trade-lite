@@ -21,6 +21,8 @@
 - [x] 4.2 Write `app/page.tsx` (yellow "Copy-Trade Lite" headline in Space Grotesk on black, one-line plain-language subtitle) and `app/trade/page.tsx` (placeholder stating in plain language that the trade screen is coming). Verify: both routes render with no console errors at 375 px and 1280 px; no saturated color other than yellow is visible.
 - [x] 4.3 Client-boundary check: temporarily add `import { env } from "@/lib/env"` to `BottomNav.tsx` and run `pnpm build`. Verify: the build fails with the server-only error; revert the import; `pnpm build` then succeeds. Note the result in the commit body.
 
+- [x] 4.4 (added on request) Write `README.md` v1: honest status table per tier, credentials guide, run-it-locally steps with expected output, manual test checklist for the current state, safety section. Verify: a reader can start the app and run the env-guard checks from the README alone.
+
 ## 5. Change review
 
-- [ ] 5.1 Run the P-R review prompt on the diff of this change against `specs/constitution.md` (safety, correctness, clarity). Verify: findings fixed in a separate `fix:` commit, or "no findings" recorded.
+- [x] 5.1 Run the P-R review prompt on the diff of this change against `specs/constitution.md` (safety, correctness, clarity). Verify: findings fixed in a separate `fix:` commit, or "no findings" recorded.
