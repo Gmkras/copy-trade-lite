@@ -7,10 +7,10 @@ context: |
   Brief: ../decibel_engineering_test.pdf. Rules: CLAUDE.md (root) and
   specs/constitution.md — both are binding for every artifact.
 
-  Stack (minimal on purpose): Next.js 15 App Router, TypeScript strict,
-  Tailwind (no UI kit), lightweight-charts, better-sqlite3 file DB, zod,
-  vitest, tsx scripts. Dependencies: @decibeltrade/sdk + @aptos-labs/ts-sdk.
-  100% TypeScript: no .js source files.
+  Stack (minimal on purpose): Next.js 16 App Router (current stable), TypeScript
+  strict, Tailwind v4 (CSS-first @theme tokens, no UI kit), lightweight-charts,
+  better-sqlite3 file DB, zod, vitest, tsx scripts, pnpm. Dependencies:
+  @decibeltrade/sdk 0.8 + @aptos-labs/ts-sdk. 100% TypeScript: no .js source files.
 
   Safety hard fails: testnet only (TESTNET_CONFIG only; env refuses otherwise),
   no secrets in the repo, builderFee <= approved maxFee <= 10 bps as a
