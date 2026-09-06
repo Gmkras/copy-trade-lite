@@ -12,8 +12,8 @@
 
 ## 3. Design tokens, fonts and base components (≈60 min)
 
-- [ ] 3.1 Replace `app/globals.css` with the Tailwind v4 `@theme` block from design D4 plus base styles (black body, 16 px minimum text, visible focus ring, `prefers-reduced-motion` rule). Load Inter and Space Grotesk with `next/font/google` in `app/layout.tsx`. Verify: `pnpm dev` shows a black page and the computed font of `h1` is Space Grotesk (DevTools).
-- [ ] 3.2 Create `components/BigButton.tsx`, `components/Card.tsx`, `components/Sheet.tsx` (bottom sheet with backdrop, closes on backdrop click and Escape) and `components/Toast.tsx` (`ToastProvider` + `useToast()`, auto-dismiss 4 s, `aria-live="polite"`). Verify: a temporary demo on the home page shows all four working at 375 px (button pending state, sheet open/close, toast auto-dismiss); remove the demo before committing.
+- [x] 3.1 Replace `app/globals.css` with the Tailwind v4 `@theme` block from design D4 plus base styles (black body, 16 px minimum text, visible focus ring, `prefers-reduced-motion` rule). Load Inter and Space Grotesk with `next/font/google` in `app/layout.tsx`. Verify: `pnpm dev` shows a black page and the computed font of `h1` is Space Grotesk (DevTools).
+- [x] 3.2 Create `components/BigButton.tsx`, `components/Card.tsx`, `components/Sheet.tsx` (bottom sheet with backdrop, closes on backdrop click and Escape) and `components/Toast.tsx` (`ToastProvider` + `useToast()`, auto-dismiss 4 s, `aria-live="polite"`). Verify: a temporary demo on the home page shows all four working at 375 px (button pending state, sheet open/close, toast auto-dismiss); remove the demo before committing.
 
 ## 4. Layout, navigation and placeholder pages (≈45 min)
 
