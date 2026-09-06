@@ -10,7 +10,7 @@
 
 ## 3. Order route (≈30 min)
 
-- [ ] 3.1 Create `app/api/order/route.ts` (`POST`, `OrderInput` → `placeMarketOrder({ marketName, isBuy: side === "up", size })` → `OrderReceipt` with `explorerUrl`). Verify with curl: `size: "abc"` → 422 with the range message; `size: 5` → 422 "more than this app allows"; extra field `builderFee: 1` → 422; `{market:"BTC/USD", side:"up", size:0.00002}` → 200 with a hash that opens on the explorer. Record the hash in the commit body.
+- [x] 3.1 Create `app/api/order/route.ts` (`POST`, `OrderInput` → `placeMarketOrder({ marketName, isBuy: side === "up", size })` → `OrderReceipt` with `explorerUrl`). Verify with curl: `size: "abc"` → 422 with the range message; `size: 5` → 422 "more than this app allows"; extra field `builderFee: 1` → 422; `{market:"BTC/USD", side:"up", size:0.00002}` → 200 with a hash that opens on the explorer. Record the hash in the commit body.
 
 ## 4. Trade screen (≈90 min)
 

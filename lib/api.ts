@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ZodError, type ZodType } from "zod";
+import { ZodError, type ZodType, type ZodTypeDef } from "zod";
 
 import { TradeError } from "@/lib/decibel";
 import type { ApiFail, ApiOk } from "@/lib/schemas";
@@ -23,8 +23,8 @@ export type HandlerArgs<TBody> = {
 };
 
 export type ApiHandlerOptions<TBody, TOut> = {
-  /** When set, the JSON body is parsed with it before `run` is called. */
-  schema?: ZodType<TBody>;
+  /** When set, the JSON body is parsed with it before `run` is called. Input may differ from output (coercions). */
+  schema?: ZodType<TBody, ZodTypeDef, unknown>;
   run: (args: HandlerArgs<TBody>) => Promise<TOut>;
 };
 
