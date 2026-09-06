@@ -1,7 +1,7 @@
 ## 1. Contract and API handler (≈45 min)
 
-- [ ] 1.1 Create `lib/schemas.ts` (zod `OrderInput` `.strict()` with `side: "up" | "down"`, shared response types `Market`, `Price`, `AccountState`, `OrderReceipt`, and the `ApiEnvelope` types) and `lib/format.ts` (`money`, `amount`, `pct`, `timeAgo`; client-safe). Add `lib/schemas.test.ts` covering: valid body, string size coerced, `size: "abc"` rejected, extra field `builderFee` rejected, bad side rejected. Verify: `pnpm test` green; `pnpm typecheck` exits 0.
-- [ ] 1.2 Create `lib/api.ts` with `apiHandler()` per design D2 (ZodError → 422 `INVALID_INPUT`, `TradeError` → 422 with code, unknown → 502 `UPSTREAM` + server log; malformed JSON → 400). Verify: `pnpm typecheck` exits 0; a unit test calls the handler with a throwing function and asserts the 502 envelope contains no stack text.
+- [x] 1.1 Create `lib/schemas.ts` (zod `OrderInput` `.strict()` with `side: "up" | "down"`, shared response types `Market`, `Price`, `AccountState`, `OrderReceipt`, and the `ApiEnvelope` types) and `lib/format.ts` (`money`, `amount`, `pct`, `timeAgo`; client-safe). Add `lib/schemas.test.ts` covering: valid body, string size coerced, `size: "abc"` rejected, extra field `builderFee` rejected, bad side rejected. Verify: `pnpm test` green; `pnpm typecheck` exits 0.
+- [x] 1.2 Create `lib/api.ts` with `apiHandler()` per design D2 (ZodError → 422 `INVALID_INPUT`, `TradeError` → 422 with code, unknown → 502 `UPSTREAM` + server log; malformed JSON → 400). Verify: `pnpm typecheck` exits 0; a unit test calls the handler with a throwing function and asserts the 502 envelope contains no stack text.
 
 ## 2. Read routes (≈45 min)
 
