@@ -1,6 +1,51 @@
 import { describe, expect, it } from "vitest";
 
-import { OrderInput } from "./schemas";
+import { CopyInput, OrderInput, SignalInput } from "./schemas";
+
+const validSignal = { author: "Ana", market: "BTC/USD", side: "up", tpPct: 3, slPct: 2, holdHours: 4, size: 0.00002 };
+
+describe("SignalInput", () => {
+  it("accepts a valid idea and coerces numeric strings", () => {
+    const parsed = SignalInput.parse({ ...validSignal, tpPct: "3", holdHours: "4", note: "  looks strong  " });
+    expect(parsed).toMatchObject({ author: "Ana", tpPct: 3, holdHours: 4, size: 0.00002, note: "looks strong" });
+  });
+
+  it.each([
+    [{ tpPct: 0 }, "Take profit must be more than 0%"],
+    [{ slPct: 150 }, "Stop loss must be less than 100%"],
+    [{ holdHours: 0 }, "at least 1 hour"],
+    [{ holdHours: 1000 }, "at most 720 hours"],
+    [{ author: "   " }, "Add a name"],
+    [{ side: "long" }, ""],
+  ])("rejects %j", (patch, fragment) => {
+    const result = SignalInput.safeParse({ ...validSignal, ...patch });
+    expect(result.success).toBe(false);
+    if (!result.success && fragment) expect(result.error.issues[0]?.message).toContain(fragment);
+  });
+
+  it("rejects an entryPrice or any other unknown field (the server sets the entry)", () => {
+    for (const extra of [{ entryPrice: 1 }, { tpPrice: 1 }, { builderFee: 1 }, { expiresAt: 0 }]) {
+      expect(SignalInput.safeParse({ ...validSignal, ...extra }).success).toBe(false);
+    }
+  });
+
+  it("leaves the size range to the domain", () => {
+    expect(SignalInput.parse({ ...validSignal, size: 5 }).size).toBe(5);
+    expect(Number.isNaN(SignalInput.parse({ ...validSignal, size: "abc" }).size)).toBe(true);
+  });
+});
+
+describe("CopyInput", () => {
+  it("accepts a copier with or without size", () => {
+    expect(CopyInput.parse({ copier: "Ben" })).toEqual({ copier: "Ben", size: undefined });
+    expect(CopyInput.parse({ copier: "Ben", size: "0.00004" }).size).toBe(0.00004);
+  });
+
+  it("rejects unknown fields and an empty copier", () => {
+    expect(CopyInput.safeParse({ copier: "Ben", price: 1 }).success).toBe(false);
+    expect(CopyInput.safeParse({ copier: "" }).success).toBe(false);
+  });
+});
 
 describe("OrderInput", () => {
   it("accepts a valid body", () => {

@@ -2,10 +2,10 @@
  * Market list and live price in human units, for the HTTP contract.
  * Not guarded (scripts may use it); app code imports via `@/lib/decibel`.
  */
-import type { Market, Price } from "../schemas";
+import type { Candle, Market, Price } from "../schemas";
 import { getDecibel } from "./client";
 import { TradeError } from "./errors";
-import { baseSymbol, fromChainUnits, type MarketPrecision } from "./units";
+import { baseSymbol, fromChainUnits, toValidOrderSize, type MarketPrecision } from "./units";
 
 export type MarketRow = MarketPrecision & { market_addr: string; mode: string };
 
@@ -34,6 +34,31 @@ export function toMarket(m: MarketPrecision, maxOrderSize: number): Market {
     priceStep: fromChainUnits(m.tick_size, m.px_decimals),
     maxOrderSize,
   };
+}
+
+/**
+ * Validates a human size against the market's bounds and the app cap exactly
+ * like an order would, and returns the size that would actually be sent
+ * (floored to the lot). Throws the same TradeError messages as the trade screen.
+ */
+export async function assertTradableSize(marketName: string, size: number): Promise<number> {
+  const d = getDecibel();
+  const markets = await d.read.markets.getAll();
+  const market = markets.find((m) => m.market_name === marketName);
+  if (!market) throw new TradeError("UNKNOWN_MARKET", `Unknown market "${marketName}".`);
+  const units = toValidOrderSize(size, market, d.maxOrderSize);
+  return fromChainUnits(units, market.sz_decimals);
+}
+
+/** Last `minutes` one-minute candles for a market, ascending, ms timestamps. */
+export async function getCandles(marketName: string, minutes = 200): Promise<Candle[]> {
+  const d = getDecibel();
+  const endTime = Date.now();
+  const startTime = endTime - minutes * 60_000;
+  const rows = await d.read.candlesticks.getByName({ marketName, interval: "1m", startTime, endTime });
+  return rows
+    .map((r) => ({ t: r.t, o: r.o, h: r.h, l: r.l, c: r.c, v: r.v }))
+    .sort((a, b) => a.t - b.t);
 }
 
 /** Live mid/mark for one market by name. */

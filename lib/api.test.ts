@@ -10,7 +10,7 @@ vi.mock("@/lib/decibel", async () => {
 });
 
 import { TradeError } from "./decibel/errors";
-import { apiHandler } from "./api";
+import { apiHandler, NotFoundError } from "./api";
 
 const post = (body: unknown) =>
   new Request("http://localhost/api/test", {
@@ -60,6 +60,17 @@ describe("apiHandler", () => {
       code: "INVALID_SIZE",
       message: "Choose an amount between 0.00002 and 0.01 BTC.",
     });
+  });
+
+  it("maps NotFoundError to 404", async () => {
+    const handler = apiHandler({
+      run: async () => {
+        throw new NotFoundError("That idea was not found.");
+      },
+    });
+    const res = await handler(new Request("http://localhost/api/signals/nope"));
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ ok: false, code: "NOT_FOUND", message: "That idea was not found." });
   });
 
   it("hides unknown errors behind a safe 502 and logs the cause", async () => {

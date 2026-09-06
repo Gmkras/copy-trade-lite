@@ -8,6 +8,7 @@ export type TradeErrorCode =
   | "NO_PRICE"
   | "TPSL_SIDE"
   | "FEE_BOUND"
+  | "SIGNAL_EXPIRED"
   | "INSUFFICIENT_BALANCE"
   | "NO_GAS"
   | "API_KEY_REJECTED"

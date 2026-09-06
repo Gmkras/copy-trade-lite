@@ -14,15 +14,51 @@ import { z } from "zod";
 export const OrderSide = z.enum(["up", "down"]);
 export type OrderSide = z.infer<typeof OrderSide>;
 
+/** Accepts a number or a numeric string; NaN and the range are judged by the domain (toValidOrderSize). */
+export const sizeField = z.union([z.number(), z.string().min(1)]).transform((value) => Number(value));
+
 export const OrderInput = z
   .object({
     market: z.string().min(1, "Pick a coin first."),
     side: OrderSide,
-    // Accept a number or a numeric string; NaN and the range are judged by the domain.
-    size: z.union([z.number(), z.string().min(1)]).transform((value) => Number(value)),
+    size: sizeField,
   })
   .strict();
 export type OrderInput = z.infer<typeof OrderInput>;
+
+const displayName = z.string().trim().min(1, "Add a name.").max(40, "Keep the name under 40 characters.");
+const percent = (label: string) =>
+  z.coerce
+    .number({ invalid_type_error: `${label} must be a number.` })
+    .gt(0, `${label} must be more than 0%.`)
+    .lt(100, `${label} must be less than 100%.`);
+
+/** POST /api/signals body. The entry price is never accepted from the client. */
+export const SignalInput = z
+  .object({
+    author: displayName,
+    market: z.string().min(1, "Pick a coin first."),
+    side: OrderSide,
+    tpPct: percent("Take profit"),
+    slPct: percent("Stop loss"),
+    holdHours: z.coerce
+      .number({ invalid_type_error: "Hold time must be a number of hours." })
+      .min(1, "Hold the idea for at least 1 hour.")
+      .max(720, "Hold the idea for at most 720 hours (30 days)."),
+    size: sizeField,
+    note: z.string().trim().max(140, "Keep the note under 140 characters.").optional(),
+  })
+  .strict();
+export type SignalInput = z.infer<typeof SignalInput>;
+
+/** POST /api/signals/[id]/copy body. Size defaults to the author's. */
+export const CopyInput = z
+  .object({
+    copier: displayName,
+    size: sizeField.optional(),
+  })
+  .strict();
+export type CopyInput = z.infer<typeof CopyInput>;
 
 /** Every route answers with this envelope. */
 export type ApiOk<T> = { ok: true; data: T };
@@ -129,6 +165,37 @@ export type AuthorStats = {
   author: string;
   ideas: number;
   copies: number;
+};
+
+/** A signal plus whether it can still be copied. */
+export type SignalView = Signal & { expired: boolean };
+
+/** GET /api/signals. */
+export type SignalList = {
+  signals: SignalView[];
+  authors: AuthorStats[];
+  updatedAt: number;
+};
+
+/** One-minute candle for the chart (ms timestamps). */
+export type Candle = { t: number; o: number; h: number; l: number; c: number; v: number };
+
+/** GET /api/signals/[id]. */
+export type SignalDetail = {
+  signal: SignalView;
+  copies: SignalCopy[];
+  price: Price | null;
+  priceError: string | null;
+  candles: Candle[];
+  candlesError: string | null;
+};
+
+/** POST /api/signals/[id]/copy response. */
+export type CopyReceipt = OrderReceipt & {
+  copyId: string | null;
+  copyCount: number;
+  /** False when the exchange rejected the trigger prices and the order was placed without them. */
+  tpSlAttached: boolean;
 };
 
 /** POST /api/order response. */

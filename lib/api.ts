@@ -14,6 +14,16 @@ import type { ApiFail, ApiOk } from "@/lib/schemas";
  *  - anything else   → 502 UPSTREAM with a safe message; the cause is logged server-side
  */
 
+/** Thrown by handlers when the requested resource does not exist → 404. */
+export class NotFoundError extends Error {
+  readonly code = "NOT_FOUND";
+
+  constructor(message = "Not found.") {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}
+
 type RouteContext = { params?: Promise<Record<string, string>> | Record<string, string> };
 
 export type HandlerArgs<TBody> = {
@@ -66,6 +76,9 @@ export function errorResponse(error: unknown): Response {
   }
   if (error instanceof TradeError) {
     return fail(422, error.code, error.message);
+  }
+  if (error instanceof NotFoundError) {
+    return fail(404, error.code, error.message);
   }
   // Unknown: never echo internals (URLs, keys, stacks) to the client.
   console.error("[api] unexpected error:", error);
