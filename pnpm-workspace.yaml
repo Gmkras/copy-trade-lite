@@ -1,3 +1,6 @@
 allowBuilds:
+  # esbuild's postinstall only re-checks its binary; the platform package
+  # (@esbuild/win32-x64 etc.) already provides it, so the script is not needed.
+  esbuild: false
   sharp: false
   unrs-resolver: false

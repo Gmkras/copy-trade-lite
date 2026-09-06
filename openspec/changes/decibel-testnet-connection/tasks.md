@@ -1,7 +1,7 @@
 ## 1. Dependencies and SDK client (≈60 min)
 
-- [ ] 1.1 Add `@decibeltrade/sdk@0.8.0`, `@aptos-labs/ts-sdk@^7.1.0` (deps) and `tsx`, `@types/ws` (dev deps); add `"engines": { "node": ">=22" }` and script aliases `keygen`, `smoke`, `mint`, `approve`, `order:once` (all `tsx scripts/<name>.ts`). Verify: `pnpm install` succeeds; `pnpm typecheck` exits 0.
-- [ ] 1.2 Create `lib/decibel/errors.ts` (`TradeError` with the codes from design D6, `humanizeSdkError`) and `lib/decibel/client.ts` (`getDecibel()` lazy singleton per design D1: account from `PRIVATE_KEY`, `DecibelReadDex`/`DecibelWriteDex` with `TESTNET_CONFIG` + `nodeApiKey`, `walletAddr`, `subaccountAddr`, `builderAddr` padded to 64 hex, `feeBps`, `maxOrderSize`). Create `lib/decibel/index.ts` with `import "server-only"` re-exporting the public surface. Verify: `pnpm typecheck` exits 0; a throwaway `tsx -e` that imports `client.ts` and prints `walletAddr` shows `0xdc47…86cc` (no key printed).
+- [x] 1.1 Add `@decibeltrade/sdk@0.8.0`, `@aptos-labs/ts-sdk@^7.1.0` (deps) and `tsx`, `@types/ws` (dev deps); add `"engines": { "node": ">=22" }` and script aliases `keygen`, `smoke`, `mint`, `approve`, `order:once` (all `tsx scripts/<name>.ts`). Verify: `pnpm install` succeeds; `pnpm typecheck` exits 0.
+- [x] 1.2 Create `lib/decibel/errors.ts` (`TradeError` with the codes from design D6, `humanizeSdkError`) and `lib/decibel/client.ts` (`getDecibel()` lazy singleton per design D1: account from `PRIVATE_KEY`, `DecibelReadDex`/`DecibelWriteDex` with `TESTNET_CONFIG` + `nodeApiKey`, `walletAddr`, `subaccountAddr`, `builderAddr` padded to 64 hex, `feeBps`, `maxOrderSize`). Create `lib/decibel/index.ts` with `import "server-only"` re-exporting the public surface. Verify: `pnpm typecheck` exits 0; a throwaway `tsx -e` that imports `client.ts` and prints `walletAddr` shows `0xdc47…86cc` (no key printed).
 
 ## 2. Chain units with tests (≈45 min)
 
