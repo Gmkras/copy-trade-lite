@@ -17,9 +17,9 @@
 
 ## 4. Layout, navigation and placeholder pages (≈45 min)
 
-- [ ] 4.1 Build `components/BottomNav.tsx` (client, `usePathname`, two tabs Feed `/` and Trade `/trade`, active tab yellow, tap targets ≥ 44 px) and wire it with `ToastProvider` in `app/layout.tsx`. Verify: tapping each tab changes the URL and the highlight at 375 px.
-- [ ] 4.2 Write `app/page.tsx` (yellow "Copy-Trade Lite" headline in Space Grotesk on black, one-line plain-language subtitle) and `app/trade/page.tsx` (placeholder stating in plain language that the trade screen is coming). Verify: both routes render with no console errors at 375 px and 1280 px; no saturated color other than yellow is visible.
-- [ ] 4.3 Client-boundary check: temporarily add `import { env } from "@/lib/env"` to `BottomNav.tsx` and run `pnpm build`. Verify: the build fails with the server-only error; revert the import; `pnpm build` then succeeds. Note the result in the commit body.
+- [x] 4.1 Build `components/BottomNav.tsx` (client, `usePathname`, two tabs Feed `/` and Trade `/trade`, active tab yellow, tap targets ≥ 44 px) and wire it with `ToastProvider` in `app/layout.tsx`. Verify: tapping each tab changes the URL and the highlight at 375 px.
+- [x] 4.2 Write `app/page.tsx` (yellow "Copy-Trade Lite" headline in Space Grotesk on black, one-line plain-language subtitle) and `app/trade/page.tsx` (placeholder stating in plain language that the trade screen is coming). Verify: both routes render with no console errors at 375 px and 1280 px; no saturated color other than yellow is visible.
+- [x] 4.3 Client-boundary check: temporarily add `import { env } from "@/lib/env"` to `BottomNav.tsx` and run `pnpm build`. Verify: the build fails with the server-only error; revert the import; `pnpm build` then succeeds. Note the result in the commit body.
 
 ## 5. Change review
 

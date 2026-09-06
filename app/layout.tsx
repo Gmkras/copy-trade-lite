@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 
+import { BottomNav } from "@/components/BottomNav";
 import { ToastProvider } from "@/components/Toast";
 
 import "./globals.css";
@@ -33,8 +34,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">
-        <ToastProvider>{children}</ToastProvider>
+      <body className="flex min-h-full flex-col pb-16">
+        <ToastProvider>
+          {children}
+          <BottomNav />
+        </ToastProvider>
       </body>
     </html>
   );
