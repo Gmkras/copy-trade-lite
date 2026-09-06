@@ -74,9 +74,16 @@ export const POST = apiHandler<CopyReceipt, CopyInput>({
   },
 });
 
-/** Only retry without triggers when the chain's message clearly blames them. */
-function isTriggerPriceRejection(error: unknown): boolean {
+/**
+ * Only retry without triggers when the chain's message clearly blames them.
+ *
+ * The patterns must be anchored: a loose /tp|sl/ matches "http" inside any URL
+ * in the error text, which would place a second order after an unrelated
+ * rejection. Only whole Move identifiers count.
+ */
+const TRIGGER_REJECTION = /\b(tp|sl)_(trigger|limit)_price\b|\btake_profit\b|\bstop_loss\b|\btrigger_price\b|\bE[A-Z_]*TRIGGER[A-Z_]*\b|\bE[A-Z_]*TPSL[A-Z_]*\b/i;
+
+export function isTriggerPriceRejection(error: unknown): boolean {
   if (!(error instanceof TradeError) || error.code !== "TX_REJECTED") return false;
-  const text = errorText(error.cause ?? error).toLowerCase();
-  return /tp|sl|trigger|take_profit|stop_loss/.test(text);
+  return TRIGGER_REJECTION.test(errorText(error.cause ?? error));
 }

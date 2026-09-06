@@ -13,10 +13,15 @@ A dead-simple trading app on **Decibel (Aptos testnet)** that a smart 12-year-ol
 | MUST 2 | Real testnet order with builder codes (approve → place), fee bound enforced | ✅ Done (`decibel-testnet-connection`) — `pnpm approve`, `pnpm order:once` |
 | MUST 3 | Kid-friendly trade screen: coin, Up/Down, how much, one button | ✅ Done (`trade-screen`) — `/trade` |
 | MUST 4 | Live account: equity, positions + PnL, open orders, fills (5 s polling, honest staleness) | ✅ Done (`trade-screen`) — `/trade` |
-| SHOULD 5–8 | Signals, chart, one-click copy, history | ⏳ Planned (`copy-trade-signals`) |
-| STRETCH | WebSocket, outcomes, leaderboard | ⏳ Only if everything above is solid |
+| SHOULD 5 | Signal authoring: entry = live price, TP %, SL %, hold duration | ✅ Done (`copy-trade-signals`) — "Post an idea" on `/` |
+| SHOULD 6 | Signal on a chart with entry / take-profit / stop-loss lines | ✅ Done (`copy-trade-signals`) — `/signals/[id]` |
+| SHOULD 7 | One-click copy from the copier's own account, builder code attached | ✅ Done (`copy-trade-signals`) — "Copy this trade" |
+| SHOULD 8 | Persisted signal history with per-author track record | ✅ Done (`copy-trade-signals`) — SQLite at `DB_PATH` |
+| STRETCH | WebSocket, outcome marking (hit TP/SL), leaderboard | ⏳ Not done — see [What's next](#whats-next) |
 
-Proof on the Aptos testnet explorer: first order from the script `0x5f433998292cf8350bbbb92e52fd334c70e4c92c98132b90caf6f73291f86875`, builder-fee approval `0x0c237551c7a68fad58c6999cc0f883fc78bce6d947cf845f384d34fa5e198f24`, order placed from the UI `0x9e3276151dae78bb1a41e9dd7ae16148a42f90e9bb467df165dd43e51b9cf7af`.
+Proof on the Aptos testnet explorer: first order from the script `0x5f433998292cf8350bbbb92e52fd334c70e4c92c98132b90caf6f73291f86875`, builder-fee approval `0x0c237551c7a68fad58c6999cc0f883fc78bce6d947cf845f384d34fa5e198f24`, order placed from the Trade screen `0x9e3276151dae78bb1a41e9dd7ae16148a42f90e9bb467df165dd43e51b9cf7af`, **signal copied with one tap** `0x54c0e82a700bec0d4372b0ed6a589c10732f988b5bb306e02abac5acc924dff3`.
+
+> **Play names, one account.** Authors and copiers are display names typed in the form; every order is signed with the single testnet key in `.env`. There is no login — that is out of scope for this take-home and is called out under [Safety](#safety).
 
 ## Prerequisites
 
@@ -121,8 +126,16 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
    pnpm dev          # http://localhost:3000
    ```
 
-   **Demo path (what a reviewer does first):** open <http://localhost:3000/trade> at a phone-sized viewport → **BTC** is selected → tap **Up ↑** → tap the **0.00002** chip → the yellow button reads "Buy 0.00002 BTC ≈ $1.60" → tap it once → "Sending your order…" → green toast "Order sent … See it on the explorer" → click the link (testnet transaction, status Success) → scroll to **Your account**: Equity, Available, PnL and the BTC position with PnL in $ and %.
-   The first request after `pnpm dev` compiles the routes and can take ~8 s; after that everything refreshes every 5 s.
+   **Demo path (what a reviewer does first, ~90 seconds).** Use a phone-sized viewport (DevTools → device toolbar → 375 px):
+
+   1. **Trade** tab → BTC is selected → tap **Up ↑** → tap the **0.00002** chip. The yellow button reads "Buy 0.00002 BTC ≈ $1.60".
+   2. Tap it once → "Sending your order…" → green toast **See it on the explorer** (testnet transaction, status Success) → scroll to **Your account**: Equity, Available, PnL and the position with PnL in $ and %.
+   3. **Feed** tab → **Post an idea**: your name, BTC, **Up**, take profit 3 %, stop loss 2 %, hold 4 hours. The entry is the live price, read on the server; the dollar previews follow what you type. Tap **Post this idea**.
+   4. The new card is first in the feed: "went Up on BTC · just now · live · 4h left · copied 0×". Tap the yellow **Copy**.
+   5. The idea on a chart: candles with **Entry** (yellow), **Take profit** (green) and **Stop loss** (red) lines. Type a different name and tap **Copy this trade** once → toast with the explorer link → a marker appears on the chart and the count becomes "Copied 1×".
+   6. Back on **Feed**, the card says "copied 1×" and the author line shows "1 idea · 1 copy". On **Trade**, the position grew.
+
+   The first request after `pnpm dev` compiles the routes and can take ~8 s; after that the price and account refresh every 5 s and the feed every 10 s.
 
 > **Security note — localhost only.** The private key lives on the server side of this app and the write routes (coming in later changes) have no authentication. Do not expose the dev server to the internet. See [Safety](#safety).
 
@@ -156,6 +169,18 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 - [ ] Turn off Wi-Fi (or block `/api/account` in DevTools) → the account numbers stay and a "couldn't refresh" chip appears; turn it back on → the chip disappears.
 - [ ] Empty account (fresh key, no mint): the card shows $0.00 and "No trades yet — try Up on BTC"; placing an order shows the plain-language "Not enough play money — run `pnpm mint`" toast.
 
+**Ideas, chart and copy** (`/` and `/signals/[id]`, 375 px):
+
+- [ ] Empty database → the feed says "No ideas yet — post the first one" with the Post an idea action visible.
+- [ ] In **Post an idea**, change take profit from 3 to 5 → the "out at $…" preview updates without submitting. Entry is read-only.
+- [ ] Enter take profit `0` and post → error toast "Take profit must be more than 0%", the sheet stays open with your inputs.
+- [ ] Post a valid idea → toast, sheet closes, card first in the feed with "live · Xh left".
+- [ ] Open the card → chart with three labeled lines at the entry, take-profit and stop-loss prices, plus the plain-language sentence.
+- [ ] Tap **Copy this trade** once → busy label → toast with an explorer link → marker on the chart, "Copied 1×", copier listed.
+- [ ] Tap it twice quickly → only one order is placed.
+- [ ] Restart `pnpm dev` → the ideas and copies are still there (SQLite at `DB_PATH`).
+- [ ] An expired idea shows "expired" on the card and a disabled "This idea has expired" button on its detail.
+
 **API contract** (with the dev server running):
 
 | Request | Expect |
@@ -165,6 +190,11 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 | `curl -X POST localhost:3000/api/order -H "content-type: application/json" -d '{"market":"BTC/USD","side":"up","size":"abc"}'` | 422 `INVALID_SIZE` with the allowed range |
 | … `-d '{"market":"BTC/USD","side":"up","size":0.00002,"builderFee":1}'` | 422 `INVALID_INPUT` "Unexpected field: builderFee." (same for `price`, `builderAddr`) |
 | … `-d '{not json'` | 400 `BAD_JSON` |
+| `curl -X POST localhost:3000/api/signals -H "content-type: application/json" -d '{"author":"Ana","market":"BTC/USD","side":"up","tpPct":3,"slPct":2,"holdHours":4,"size":0.00002}'` | 200 with `entryPrice` from the live mid and `tpPrice ≈ entry × 1.03` |
+| … with `"entryPrice":1` added | 422 "Unexpected field: entryPrice." (the client can never set the entry) |
+| … with `"tpPct":0` / `"holdHours":1000` | 422 with the plain-language range |
+| `curl localhost:3000/api/signals/nope` | 404 `NOT_FOUND` |
+| `curl -X POST localhost:3000/api/signals/<expired-id>/copy -d '{"copier":"Ben"}'` | 422 `SIGNAL_EXPIRED`, no order placed |
 
 **Shell and navigation**:
 
@@ -185,10 +215,13 @@ pnpm build       # production build; must succeed
 ## Project structure
 
 ```
-app/                    Next.js App Router: layout, home, /trade
-app/api/                markets, price/[market], account, order — every route goes through apiHandler
-components/             BigButton, Card, Sheet, Toast, BottomNav, CoinPills, SideToggle, SizePicker, TradeForm, AccountCard, TradeScreen
+app/                    Next.js App Router: layout, feed (/), /trade, /signals/[id]
+app/api/                markets, price/[market], account, order, signals, signals/[id], signals/[id]/copy — every route goes through apiHandler
+components/             shell (BigButton, Card, Sheet, Toast, BottomNav), trading (CoinPills, SideToggle, SizePicker, TradeForm, AccountCard, TradeScreen), signals (Feed, SignalCard, PostIdeaSheet, SignalDetail, CopyPanel, PriceChart)
 hooks/usePoll.ts        polling with last-good-data + stale flag (tests)
+lib/signals/db.ts       node:sqlite database at DB_PATH, schema created on first use (no native deps)
+lib/signals/repo.ts     prepared statements, zod-parsed rows, copy counts and author stats (tests)
+lib/signals/math.ts     TP/SL prices, expiry, plain-language wording (tests)
 lib/schemas.ts          zod OrderInput (.strict()) + shared response types (client-safe)
 lib/api.ts              apiHandler: one envelope, 422/400 readable errors, safe 502 (tests)
 lib/format.ts           money, amount, pct, timeAgo (client-safe)
@@ -216,10 +249,21 @@ Graded explicitly by the brief; enforced in code, not by convention:
 - **Secrets never reach the browser** — `lib/env.ts` and `lib/decibel/index.ts` import `server-only`; a client component importing them breaks the build (verified).
 - **Builder fee bound** — the fee is a server constant (`BUILDER_FEE_BPS`, validated `0..10` at startup); no function takes a fee parameter; `assertFeeBound` checks `fee ≤ approved max ≤ 10` immediately before the transaction is built, against the approval recorded by `pnpm approve`.
 - **Validate before signing** — `toValidOrderSize` (finite, > 0, ≥ market minimum, ≤ `MAX_ORDER_SIZE`) and `assertTpSlSides` run before any pricing or signing; every rejection is a plain-language message with the allowed range.
-- **One validated boundary** — `POST /api/order` is the only way an order enters, its body is a `.strict()` zod schema (coin, direction, size — nothing else), and it can only call `placeMarketOrder`. Errors never expose stacks, URLs or keys (`lib/api.ts`, tested).
+- **One validated boundary** — `POST /api/order` and `POST /api/signals/[id]/copy` are the only ways an order enters; both bodies are `.strict()` zod schemas (coin, direction, size, names — nothing else) and both call the same `placeMarketOrder`. A copy cannot choose the price, the builder address, the fee or the exit levels: they come from the stored signal and the server constants. Errors never expose stacks, URLs or keys (`lib/api.ts`, tested).
+- **The entry price is a server fact** — `POST /api/signals` reads the live mid itself; `SignalInput` has no `entryPrice` field and `.strict()` rejects one (tested).
+- **Honest about fills** — an immediate-or-cancel order can be sent without filling, so copies record the reference price and the UI says "at about $…"; the receipt reports `tpSlAttached: false` if the exchange ever refuses the exit levels. A copy whose order succeeded is never reported as a failure, even if writing it to SQLite fails (that case is logged loudly).
 - **Unhappy paths** — every SDK/chain error becomes a `TradeError` with a readable message and the original error kept on `cause`; success is never reported without a transaction hash; an empty account (404 before the first deposit) is a state, not an error.
 
-Biggest risk in this design: the private key on the server behind an unauthenticated `POST /api/order`. Mitigation: server-only modules, startup validation, the size cap, the fee bound asserted last, and keeping the app on localhost. The next step would be wallet-based signing in the browser.
+## What's next
+
+With another day, in this order:
+
+1. **Outcome marking** (STRETCH): read one-minute candles since a signal was posted and mark it "hit take profit", "hit stop loss" or "expired" — the piece that turns the history into a real track record.
+2. **A tiny leaderboard** from the author stats already computed (`ideas`, `copies`, and then hit rate).
+3. **WebSocket** price and position updates replacing the polling, keeping polling as the fallback.
+4. **Wallet-based signing** so each person copies from their own wallet instead of the shared server key — the change that removes the biggest risk below.
+
+Biggest risk in this design: the private key on the server behind unauthenticated write routes (`/api/order`, `/api/signals/[id]/copy`). Mitigation: server-only modules, startup validation, the size cap, the fee bound asserted last, and keeping the app on localhost. The next step would be wallet-based signing in the browser.
 
 ## Development process
 
@@ -237,5 +281,7 @@ Each feature is an OpenSpec change (`openspec/changes/<name>/`) with a proposal,
 | `pnpm mint [amount]` | Mint test USDC (testnet faucet function) and deposit it |
 | `pnpm approve` | Approve the builder fee (one-time, idempotent) |
 | `pnpm order:once [size] [--sell]` | Place one real market order with the builder code |
+
+Deleting `data/signals.db` resets the idea history; the file is created again on the next post.
 
 Add `--verbose` to any script to see the underlying error.

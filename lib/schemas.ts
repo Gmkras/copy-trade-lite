@@ -156,6 +156,11 @@ export type SignalCopy = {
   signalId: string;
   copier: string;
   size: number;
+  /**
+   * Reference (mid) price when the copy was placed, not a confirmed fill:
+   * an immediate-or-cancel order can be sent without filling. The UI says
+   * "at about $…" for this reason.
+   */
   fillPrice: number;
   txHash: string;
   createdAt: number;

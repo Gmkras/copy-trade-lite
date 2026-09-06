@@ -24,5 +24,5 @@
 
 ## 5. Docs and review
 
-- [ ] 5.1 Update `README.md`: SHOULD 5–8 ✅, demo path extended (post → chart → copy), checklist rows (post, preview, copy, expired, double tap), structure and "play names, same testnet key" note. Verify: a reader can post and copy an idea following only the README.
-- [ ] 5.2 Run the P-R review prompt on the diff of this change against `specs/constitution.md` (safety first: any order path other than `placeMarketOrder`; entry price from the client; unknown fields; SQL built from strings; secrets in responses; swallowed errors — especially the copy-recorded-after-tx path). Verify: findings fixed in a separate `fix:` commit, or "no findings" recorded.
+- [x] 5.1 Update `README.md`: SHOULD 5–8 ✅, demo path extended (post → chart → copy), checklist rows (post, preview, copy, expired, double tap), structure and "play names, same testnet key" note. Verify: a reader can post and copy an idea following only the README.
+- [x] 5.2 Run the P-R review prompt on the diff of this change against `specs/constitution.md` (safety first: any order path other than `placeMarketOrder`; entry price from the client; unknown fields; SQL built from strings; secrets in responses; swallowed errors — especially the copy-recorded-after-tx path). Verify: findings fixed in a separate `fix:` commit, or "no findings" recorded.

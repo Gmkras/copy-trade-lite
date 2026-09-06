@@ -81,7 +81,7 @@ export function SignalDetail({ initialSignal, initialCopies }: SignalDetailProps
             {copies.map((c) => (
               <li key={c.id} className="flex items-center justify-between rounded-card border border-line bg-bg px-3 py-2 text-sm">
                 <span>
-                  <span className="font-display font-medium">{c.copier}</span> · {amount(c.size)} {signal.symbol} at ${money(c.fillPrice, digits)}
+                  <span className="font-display font-medium">{c.copier}</span> · {amount(c.size)} {signal.symbol} at about ${money(c.fillPrice, digits)}
                 </span>
                 <a href={`https://explorer.aptoslabs.com/txn/${c.txHash}?network=testnet`} target="_blank" rel="noreferrer" className="text-yellow underline underline-offset-4">
                   {timeAgo(c.createdAt, now)}
