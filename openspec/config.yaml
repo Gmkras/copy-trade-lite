@@ -1,32 +1,58 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Project context shown to the AI when creating artifacts.
+context: |
+  Project: "Copy-Trade Lite" — Decibel engineering take-home. A kid-simple perps
+  trading app on Aptos TESTNET with a copy-trade signal feature.
+  Brief: ../decibel_engineering_test.pdf. Rules: CLAUDE.md (root) and
+  specs/constitution.md — both are binding for every artifact.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Stack (minimal on purpose): Next.js 15 App Router, TypeScript strict,
+  Tailwind (no UI kit), lightweight-charts, better-sqlite3 file DB, zod,
+  vitest, tsx scripts. Dependencies: @decibeltrade/sdk + @aptos-labs/ts-sdk.
+  100% TypeScript: no .js source files.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+  Safety hard fails: testnet only (TESTNET_CONFIG only; env refuses otherwise),
+  no secrets in the repo, builderFee <= approved maxFee <= 10 bps as a
+  server-side constant, validate size/TP/SL/address before signing, every
+  unhappy path reported in plain language, never claim a feature works if it
+  doesn't. SDK and private key are server-only. App runs on localhost only.
+
+  Scope tiers from the brief, strictly in order:
+  MUST  — connect testnet, real order with builder codes (approve then place),
+          kid-friendly trade screen, live account (equity, positions+PnL, orders).
+  SHOULD — signal authoring (entry = live price, TP%, SL%, hold), chart with
+          entry/TP/SL lines, one-click copy with builder code, persisted history.
+  STRETCH — websocket updates, outcome marking, leaderboard, mobile layout.
+
+  Design: black bg #0B0B0C, Decibel yellow #F5C400 as the only strong accent,
+  one primary action per screen, plain language, mobile-first at 375 px.
+
+  Conventions: Conventional Commits with task ID, e.g. "feat: first real
+  testnet order with builder code (T3)". One task = one commit = one
+  verification. The user runs git; the AI never commits.
+
+rules:
+  proposal:
+    - Reference the brief tier (MUST/SHOULD/STRETCH) the change serves
+    - Include a "Non-goals" section
+    - Keep under 400 words
+  specs:
+    - Every requirement has a Given/When/Then scenario
+    - Include at least one unhappy-path scenario per write operation
+  design:
+    - State which modules are server-only
+    - List the zod schemas involved and where they are enforced
+  tasks:
+    - Each task 30–90 minutes with an exact verification (command or screen)
+    - Order MUST → SHOULD → STRETCH; smoke and a real testnet order before UI
+
+operations:
+  apply:
+    guidance:
+      - After each task, update the interview guide and Loom script that live OUTSIDE this repo (../GUIA_ENTREVISTA_TS.md and ../LOOM_SCRIPT.md); never add them to the repo
+      - End with a Spanish summary and a suggested commit message; do not commit
+      - Run the safety checklist in specs/constitution.md §3 before marking done
+  archive:
+    guidance:
+      - Summarize what was verified and how before archiving
