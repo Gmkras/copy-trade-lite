@@ -9,14 +9,20 @@ import { baseSymbol, fromChainUnits, type MarketPrecision } from "./units";
 
 export type MarketRow = MarketPrecision & { market_addr: string; mode: string };
 
-/** Open perp markets in human units, BTC/USD first. */
+/**
+ * Open perp markets this app can actually trade, in human units, BTC/USD first.
+ * MAX_ORDER_SIZE is a single cap in base units, so markets whose minimum order
+ * is above it (e.g. ADA min 5) are left out rather than shown with an
+ * impossible range.
+ */
 export async function listMarkets(): Promise<Market[]> {
   const d = getDecibel();
   const rows = await d.read.markets.getAll();
   return rows
     .filter((m) => m.mode === "Open")
-    .sort((a, b) => (a.market_name === "BTC/USD" ? -1 : b.market_name === "BTC/USD" ? 1 : a.market_name.localeCompare(b.market_name)))
-    .map((m) => toMarket(m, d.maxOrderSize));
+    .map((m) => toMarket(m, d.maxOrderSize))
+    .filter((m) => m.minSize <= m.maxOrderSize)
+    .sort((a, b) => (a.name === "BTC/USD" ? -1 : b.name === "BTC/USD" ? 1 : a.name.localeCompare(b.name)));
 }
 
 export function toMarket(m: MarketPrecision, maxOrderSize: number): Market {

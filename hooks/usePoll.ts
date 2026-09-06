@@ -46,6 +46,24 @@ export async function fetchEnvelope<T>(url: string, signal?: AbortSignal): Promi
   return envelope.data;
 }
 
+/** POSTs JSON and unwraps the envelope the same way as `fetchEnvelope`. */
+export async function postEnvelope<T>(url: string, body: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  let envelope: ApiEnvelope<T> | null = null;
+  try {
+    envelope = (await response.json()) as ApiEnvelope<T>;
+  } catch {
+    envelope = null;
+  }
+  if (!envelope) throw new Error(`Unexpected response (${response.status}).`);
+  if (!envelope.ok) throw new Error(envelope.message);
+  return envelope.data;
+}
+
 type Slot<T> = { url: string | null; poll: PollState<T> };
 
 /**

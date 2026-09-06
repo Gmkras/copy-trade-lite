@@ -21,5 +21,5 @@
 
 ## 5. Docs and review
 
-- [ ] 5.1 Update `README.md`: MUST 3–4 ✅, "Demo path" from the UI (open /trade → Up → chip → button → explorer → account card), trade-screen rows in the manual checklist (typed 0, size above cap, unplug network → chip). Verify: a reader can place an order from the UI following only the README.
-- [ ] 5.2 Run the P-R review prompt on the diff of this change against `specs/constitution.md` (safety first: any path to `placeOrder` outside `placeMarketOrder`; any request field that could set fee/price/address; any secret or internal detail in an error response; any swallowed error). Verify: findings fixed in a separate `fix:` commit, or "no findings" recorded.
+- [x] 5.1 Update `README.md`: MUST 3–4 ✅, "Demo path" from the UI (open /trade → Up → chip → button → explorer → account card), trade-screen rows in the manual checklist (typed 0, size above cap, unplug network → chip). Verify: a reader can place an order from the UI following only the README.
+- [x] 5.2 Run the P-R review prompt on the diff of this change against `specs/constitution.md` (safety first: any path to `placeOrder` outside `placeMarketOrder`; any request field that could set fee/price/address; any secret or internal detail in an error response; any swallowed error). Verify: findings fixed in a separate `fix:` commit, or "no findings" recorded.

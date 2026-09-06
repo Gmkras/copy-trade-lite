@@ -11,12 +11,12 @@ A dead-simple trading app on **Decibel (Aptos testnet)** that a smart 12-year-ol
 | — | App shell: validated env + testnet guard, design tokens, base components, two-tab navigation | ✅ Done (`bootstrap-app`) |
 | MUST 1 | Connect to Decibel on Aptos testnet and authenticate the account | ✅ Done (`decibel-testnet-connection`) — `pnpm smoke` |
 | MUST 2 | Real testnet order with builder codes (approve → place), fee bound enforced | ✅ Done (`decibel-testnet-connection`) — `pnpm approve`, `pnpm order:once` |
-| MUST 3 | Kid-friendly trade screen | ⏳ Next change (`trade-screen`) |
-| MUST 4 | Live account: equity, positions + PnL, open orders | ⏳ Next change (`trade-screen`) |
+| MUST 3 | Kid-friendly trade screen: coin, Up/Down, how much, one button | ✅ Done (`trade-screen`) — `/trade` |
+| MUST 4 | Live account: equity, positions + PnL, open orders, fills (5 s polling, honest staleness) | ✅ Done (`trade-screen`) — `/trade` |
 | SHOULD 5–8 | Signals, chart, one-click copy, history | ⏳ Planned (`copy-trade-signals`) |
 | STRETCH | WebSocket, outcomes, leaderboard | ⏳ Only if everything above is solid |
 
-Proof for MUST 2 (Aptos testnet explorer): order `0x5f433998292cf8350bbbb92e52fd334c70e4c92c98132b90caf6f73291f86875`, builder-fee approval `0x0c237551c7a68fad58c6999cc0f883fc78bce6d947cf845f384d34fa5e198f24`.
+Proof on the Aptos testnet explorer: first order from the script `0x5f433998292cf8350bbbb92e52fd334c70e4c92c98132b90caf6f73291f86875`, builder-fee approval `0x0c237551c7a68fad58c6999cc0f883fc78bce6d947cf845f384d34fa5e198f24`, order placed from the UI `0x9e3276151dae78bb1a41e9dd7ae16148a42f90e9bb467df165dd43e51b9cf7af`.
 
 ## Prerequisites
 
@@ -115,11 +115,14 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
    ```
    Run `pnpm smoke` again: `positions 1` and the fee deducted from *withdrawable*.
 
-7. Start the app (currently the shell only; the trade screen arrives in the next change):
+7. Start the app and trade from the screen:
 
    ```bash
    pnpm dev          # http://localhost:3000
    ```
+
+   **Demo path (what a reviewer does first):** open <http://localhost:3000/trade> at a phone-sized viewport → **BTC** is selected → tap **Up ↑** → tap the **0.00002** chip → the yellow button reads "Buy 0.00002 BTC ≈ $1.60" → tap it once → "Sending your order…" → green toast "Order sent … See it on the explorer" → click the link (testnet transaction, status Success) → scroll to **Your account**: Equity, Available, PnL and the BTC position with PnL in $ and %.
+   The first request after `pnpm dev` compiles the routes and can take ~8 s; after that everything refreshes every 5 s.
 
 > **Security note — localhost only.** The private key lives on the server side of this app and the write routes (coming in later changes) have no authentication. Do not expose the dev server to the internet. See [Safety](#safety).
 
@@ -143,7 +146,27 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 | `BUILDER_FEE_BPS=11` | `BUILDER_FEE_BPS must be between 0 and 10 basis points (protocol cap)` |
 | `PRIVATE_KEY=` (empty) | `PRIVATE_KEY is required …`; no secret value is printed |
 
-**Shell and navigation** (`pnpm dev`, phone-sized viewport, 375 px):
+**Trade screen** (`pnpm dev`, phone-sized viewport, 375 px, <http://localhost:3000/trade>):
+
+- [ ] Default: BTC selected, Up selected, first chip selected, "1 BTC = $…" shows a price, yellow button enabled with size and ≈ dollar value. No trading jargon anywhere.
+- [ ] Tap **Down ↓** and the third chip → button reads "Sell 0.0002 BTC ≈ $…"; nothing is sent until you tap it.
+- [ ] Type `0` or `5` in the box → button disabled, red hint "Choose an amount between 0.00002 and 0.01 BTC".
+- [ ] Tap the yellow button once → "Sending your order…", then a green toast with **See it on the explorer** (opens a successful testnet transaction); within 10 s the position in **Your account** updates.
+- [ ] Tap the yellow button twice quickly → only one order is sent (the button is disabled while sending).
+- [ ] Turn off Wi-Fi (or block `/api/account` in DevTools) → the account numbers stay and a "couldn't refresh" chip appears; turn it back on → the chip disappears.
+- [ ] Empty account (fresh key, no mint): the card shows $0.00 and "No trades yet — try Up on BTC"; placing an order shows the plain-language "Not enough play money — run `pnpm mint`" toast.
+
+**API contract** (with the dev server running):
+
+| Request | Expect |
+|---|---|
+| `curl localhost:3000/api/markets` | `ok:true`, BTC/USD first with `minSize 0.00002`; only markets whose minimum fits under `MAX_ORDER_SIZE` are listed |
+| `curl localhost:3000/api/price/FOO%2FUSD` | 422 `UNKNOWN_MARKET` |
+| `curl -X POST localhost:3000/api/order -H "content-type: application/json" -d '{"market":"BTC/USD","side":"up","size":"abc"}'` | 422 `INVALID_SIZE` with the allowed range |
+| … `-d '{"market":"BTC/USD","side":"up","size":0.00002,"builderFee":1}'` | 422 `INVALID_INPUT` "Unexpected field: builderFee." (same for `price`, `builderAddr`) |
+| … `-d '{not json'` | 400 `BAD_JSON` |
+
+**Shell and navigation**:
 
 - [ ] `/` shows the yellow headline in Space Grotesk on black; no other saturated color.
 - [ ] Tap **Trade** → `/trade`, tab turns yellow; tap **Feed** → back.
@@ -162,19 +185,26 @@ pnpm build       # production build; must succeed
 ## Project structure
 
 ```
-app/                   Next.js App Router (layout, home, /trade)
-components/            BigButton, Card, Sheet, Toast, BottomNav — hand-written, no UI kit
-lib/env.schema.ts      zod schema + loadEnv() (used by next.config.ts and scripts)
-lib/env.ts             server-only frozen env for app code
-lib/decibel/client.ts  SDK clients built once from env (TESTNET_CONFIG only), wallet/subaccount/builder
-lib/decibel/units.ts   chain-unit math: tick/lot rounding, size bounds (tests)
-lib/decibel/orders.ts  approveBuilderFee, placeMarketOrder with the fee bound asserted last (tests)
-lib/decibel/errors.ts  TradeError + plain-language mapping of SDK/chain errors
-lib/decibel/index.ts   server-only gate: the only import path for app code
-scripts/               keygen, smoke, mint-usdc, approve-builder, order-once (tsx)
-specs/constitution.md  Non-negotiable rules with executable checks
-openspec/              SDD artifacts: config, active changes, archive (process evidence)
-data/                  gitignored: builder-approval.json, signals.db
+app/                    Next.js App Router: layout, home, /trade
+app/api/                markets, price/[market], account, order — every route goes through apiHandler
+components/             BigButton, Card, Sheet, Toast, BottomNav, CoinPills, SideToggle, SizePicker, TradeForm, AccountCard, TradeScreen
+hooks/usePoll.ts        polling with last-good-data + stale flag (tests)
+lib/schemas.ts          zod OrderInput (.strict()) + shared response types (client-safe)
+lib/api.ts              apiHandler: one envelope, 422/400 readable errors, safe 502 (tests)
+lib/format.ts           money, amount, pct, timeAgo (client-safe)
+lib/env.schema.ts       zod schema + loadEnv() (used by next.config.ts and scripts)
+lib/env.ts              server-only frozen env for app code
+lib/decibel/client.ts   SDK clients built once from env (TESTNET_CONFIG only), wallet/subaccount/builder
+lib/decibel/units.ts    chain-unit math: tick/lot rounding, size bounds (tests)
+lib/decibel/orders.ts   approveBuilderFee, placeMarketOrder with the fee bound asserted last (tests)
+lib/decibel/account.ts  one-call account state with per-position PnL (tests)
+lib/decibel/markets.ts  tradable markets (human units) and live price
+lib/decibel/errors.ts   TradeError + plain-language mapping of SDK/chain errors
+lib/decibel/index.ts    server-only gate: the only import path for app code
+scripts/                keygen, smoke, mint-usdc, approve-builder, order-once (tsx)
+specs/constitution.md   Non-negotiable rules with executable checks
+openspec/               SDD artifacts: config, active changes, archive (process evidence; *.old = previous versions)
+data/                   gitignored: builder-approval.json, signals.db
 ```
 
 ## Safety
@@ -186,9 +216,10 @@ Graded explicitly by the brief; enforced in code, not by convention:
 - **Secrets never reach the browser** — `lib/env.ts` and `lib/decibel/index.ts` import `server-only`; a client component importing them breaks the build (verified).
 - **Builder fee bound** — the fee is a server constant (`BUILDER_FEE_BPS`, validated `0..10` at startup); no function takes a fee parameter; `assertFeeBound` checks `fee ≤ approved max ≤ 10` immediately before the transaction is built, against the approval recorded by `pnpm approve`.
 - **Validate before signing** — `toValidOrderSize` (finite, > 0, ≥ market minimum, ≤ `MAX_ORDER_SIZE`) and `assertTpSlSides` run before any pricing or signing; every rejection is a plain-language message with the allowed range.
+- **One validated boundary** — `POST /api/order` is the only way an order enters, its body is a `.strict()` zod schema (coin, direction, size — nothing else), and it can only call `placeMarketOrder`. Errors never expose stacks, URLs or keys (`lib/api.ts`, tested).
 - **Unhappy paths** — every SDK/chain error becomes a `TradeError` with a readable message and the original error kept on `cause`; success is never reported without a transaction hash; an empty account (404 before the first deposit) is a state, not an error.
 
-Biggest risk in this design: the private key on the server behind unauthenticated write routes (coming with the trade screen). Mitigation: server-only modules, startup validation, the size cap, the fee bound asserted last, and keeping the app on localhost. The next step would be wallet-based signing in the browser.
+Biggest risk in this design: the private key on the server behind an unauthenticated `POST /api/order`. Mitigation: server-only modules, startup validation, the size cap, the fee bound asserted last, and keeping the app on localhost. The next step would be wallet-based signing in the browser.
 
 ## Development process
 

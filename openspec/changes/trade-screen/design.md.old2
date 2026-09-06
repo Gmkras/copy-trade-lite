@@ -51,9 +51,6 @@ State: `market` (default BTC/USD), `side` (default up), `size` (default first ch
 ### D6. Account card
 Three `font-display` numbers; PnL colored `text-up`/`text-down`. Sections collapsed by default except Positions. Rows are cards, not tables. Empty states: "No trades yet — try Up on BTC", "No open orders", "No fills yet". Chip "couldn't refresh" when `stale`.
 
-### D6b. Only tradable markets are listed (found in the P-R review)
-`MAX_ORDER_SIZE` is one cap in base units, so a market whose minimum order is above it (ADA min 5, WLFI min 10, …) can never be traded here and the form would show an impossible range ("Between 5 and 0.01 ADA"). `listMarkets()` therefore returns only open perps with `minSize <= maxOrderSize`. Honest and simple; a per-market cap is a later refinement. Previous wording kept in `design.md.old2`.
-
 ### D7. Explorer URL
 `https://explorer.aptoslabs.com/txn/<hash>?network=testnet` built server-side in the order route (single place).
 

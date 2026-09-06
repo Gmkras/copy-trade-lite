@@ -7,7 +7,7 @@ import { CoinPills } from "@/components/CoinPills";
 import { SideToggle } from "@/components/SideToggle";
 import { SizePicker, sizeChips } from "@/components/SizePicker";
 import { useToast } from "@/components/Toast";
-import { usePoll } from "@/hooks/usePoll";
+import { postEnvelope, usePoll } from "@/hooks/usePoll";
 import { amount, money } from "@/lib/format";
 import type { Market, OrderReceipt, OrderSide, Price } from "@/lib/schemas";
 
@@ -102,18 +102,6 @@ export function TradeForm({ markets, onOrderPlaced }: TradeFormProps) {
   );
 }
 
-async function fetchOrder(body: { market: string; side: OrderSide; size: number }): Promise<OrderReceipt> {
-  return fetchEnvelopePost<OrderReceipt>("/api/order", body);
-}
-
-async function fetchEnvelopePost<T>(url: string, body: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const envelope = (await response.json().catch(() => null)) as { ok: true; data: T } | { ok: false; message: string } | null;
-  if (!envelope) throw new Error(`Unexpected response (${response.status}).`);
-  if (!envelope.ok) throw new Error(envelope.message);
-  return envelope.data;
+function fetchOrder(body: { market: string; side: OrderSide; size: number }): Promise<OrderReceipt> {
+  return postEnvelope<OrderReceipt>("/api/order", body);
 }
