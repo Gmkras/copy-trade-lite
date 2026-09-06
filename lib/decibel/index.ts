@@ -9,6 +9,8 @@ import "server-only";
  * Scripts import the underlying modules directly instead (see client.ts).
  */
 export { getDecibel, padAddress, type Decibel } from "./client";
+export { emptyAccount, getAccountState, positionPnl, type AccountReader } from "./account";
+export { getPrice, listMarkets, toMarket } from "./markets";
 export { TradeError, humanizeSdkError, errorText, isNotFoundError, type TradeErrorCode } from "./errors";
 export {
   PROTOCOL_MAX_BUILDER_FEE_BPS,

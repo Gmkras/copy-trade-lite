@@ -28,7 +28,7 @@ All routes under `/api` SHALL respond with `{ ok: true, data }` on success or `{
 - **THEN** the first item is `BTC/USD` with `minSize` 0.00002 and every item has positive `minSize`, `sizeStep` and `priceStep`
 
 #### Scenario: Price of an unknown market
-- **WHEN** `GET /api/price/FOO%2FUSD` is called for a market that does not exist
+- **WHEN** `GET /api/price/DOGE%2FUSD` is called for a market that does not exist
 - **THEN** the response is 422 with a message that the market is unknown
 
 ### Requirement: Account state is read in one call

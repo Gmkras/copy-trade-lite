@@ -5,8 +5,8 @@
 
 ## 2. Read routes (≈45 min)
 
-- [ ] 2.1 Create `lib/decibel/account.ts` (`getAccountState()` per design D3: concurrent reads, 404 → empty state, per-position mark price and PnL in USD and percent) and export it from `lib/decibel/index.ts`. Add `lib/decibel/account.test.ts` for the PnL math (long and short) with a fake reader. Verify: `pnpm test` green.
-- [ ] 2.2 Create `app/api/markets/route.ts` (open perps, BTC/USD first, human `minSize`, `sizeStep`, `priceStep`, plus `maxOrderSize`), `app/api/price/[market]/route.ts` (mid, mark; unknown market → 422), `app/api/account/route.ts`, all with `runtime = "nodejs"` through `apiHandler`. Verify: with `pnpm dev`, `curl /api/markets` shows BTC/USD first with `minSize: 0.00002`; `curl /api/price/BTC%2FUSD` shows a positive mid; `curl /api/price/DOGE%2FUSD` returns 422; `curl /api/account` returns 200 with the current position and `pnlUsd`/`pnlPct` on it.
+- [x] 2.1 Create `lib/decibel/account.ts` (`getAccountState()` per design D3: concurrent reads, 404 → empty state, per-position mark price and PnL in USD and percent) and export it from `lib/decibel/index.ts`. Add `lib/decibel/account.test.ts` for the PnL math (long and short) with a fake reader. Verify: `pnpm test` green.
+- [x] 2.2 Create `app/api/markets/route.ts` (open perps, BTC/USD first, human `minSize`, `sizeStep`, `priceStep`, plus `maxOrderSize`), `app/api/price/[market]/route.ts` (mid, mark; unknown market → 422), `app/api/account/route.ts`, all with `runtime = "nodejs"` through `apiHandler`. Verify: with `pnpm dev`, `curl /api/markets` shows BTC/USD first with `minSize: 0.00002`; `curl /api/price/BTC%2FUSD` shows a positive mid; `curl /api/price/FOO%2FUSD` returns 422 (DOGE/USD turned out to exist on testnet); `curl /api/account` returns 200 with the current position and `pnlUsd`/`pnlPct` on it.
 
 ## 3. Order route (≈30 min)
 
