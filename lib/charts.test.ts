@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { rangeChange, rangeLabel, rangeToInterval } from "./charts";
+import { intervalForSpan, rangeChange, rangeLabel, rangeToInterval } from "./charts";
 import type { Candle } from "./schemas";
 
 const candle = (o: number, c: number, t = 0): Candle => ({ t, o, h: Math.max(o, c), l: Math.min(o, c), c, v: 1 });
@@ -23,6 +23,28 @@ describe("rangeToInterval", () => {
   it("speaks the range in plain words", () => {
     expect(rangeLabel("1h")).toBe("last hour");
     expect(rangeLabel("1w")).toBe("last week");
+  });
+});
+
+describe("intervalForSpan", () => {
+  const HOUR = 3_600_000;
+
+  it("gets coarser as the span grows, at the boundaries", () => {
+    expect(intervalForSpan(30 * 60_000)).toBe("1m");
+    expect(intervalForSpan(4 * HOUR)).toBe("1m");
+    expect(intervalForSpan(4 * HOUR + 1)).toBe("5m");
+    expect(intervalForSpan(24 * HOUR)).toBe("5m");
+    expect(intervalForSpan(24 * HOUR + 1)).toBe("15m");
+    expect(intervalForSpan(7 * 24 * HOUR)).toBe("15m");
+    expect(intervalForSpan(7 * 24 * HOUR + 1)).toBe("1h");
+    expect(intervalForSpan(30 * 24 * HOUR)).toBe("1h");
+  });
+
+  it("never asks for more than a few hundred candles", () => {
+    for (const span of [HOUR, 4 * HOUR, 24 * HOUR, 7 * 24 * HOUR, 30 * 24 * HOUR]) {
+      const ms = { "1m": 60_000, "5m": 300_000, "15m": 900_000, "1h": HOUR }[intervalForSpan(span)];
+      expect(span / ms).toBeLessThanOrEqual(720);
+    }
   });
 });
 

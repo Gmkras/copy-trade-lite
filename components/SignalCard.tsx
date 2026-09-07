@@ -11,6 +11,7 @@ import { fetchEnvelope } from "@/hooks/usePoll";
 import { amount, symbolOf, timeAgo } from "@/lib/format";
 import type { AuthorStats, Candle, CandleRange, CandlesResponse, SignalView } from "@/lib/schemas";
 import { progressSentence, timeLeftLabel } from "@/lib/signals/math";
+import { outcomeShortLabel } from "@/lib/signals/outcome";
 
 type SignalCardProps = {
   signal: SignalView;
@@ -42,6 +43,12 @@ export function SignalCard({ signal, stats, now, livePrice, candles }: SignalCar
   const initial = signal.author.trim().charAt(0).toUpperCase() || "?";
   const up = signal.side === "up";
   const digits = signal.entryPrice >= 100 ? 0 : 2;
+  // A settled idea is finished: it shows how it went instead of a countdown,
+  // and its action opens the chart rather than inviting a copy.
+  const result = outcomeShortLabel(signal.outcome);
+  const finished = result !== null;
+  const resultTone =
+    signal.outcome === "tp" ? "text-up" : signal.outcome === "sl" ? "text-down" : "text-muted";
 
   const [range, setRange] = useState<CandleRange>("1h");
   const [override, setOverride] = useState<{ range: CandleRange; candles: Candle[] } | null>(null);
@@ -87,6 +94,7 @@ export function SignalCard({ signal, stats, now, livePrice, candles }: SignalCar
         <p className="min-w-0 flex-1 text-sm text-muted">
           <span className="font-display text-base font-medium text-text">{signal.author}</span> · {timeAgo(signal.createdAt, now)}
           {stats ? ` · ${stats.ideas} ${stats.ideas === 1 ? "idea" : "ideas"} · ${stats.copies} ${stats.copies === 1 ? "copy" : "copies"}` : ""}
+          {stats && stats.settled > 0 ? ` · ${stats.won} of ${stats.settled} worked` : ""}
         </p>
       </div>
 
@@ -133,8 +141,8 @@ export function SignalCard({ signal, stats, now, livePrice, candles }: SignalCar
 
       <div className="flex items-center justify-between text-sm text-muted">
         <span>copied {signal.copyCount}×</span>
-        <span className={signal.expired ? "" : "text-text"}>
-          {signal.expired ? "expired" : `live · ${timeLeftLabel(signal, now)}`}
+        <span className={finished ? resultTone : "text-text"}>
+          {result ?? `live · ${timeLeftLabel(signal, now)}`}
         </span>
       </div>
 
@@ -142,7 +150,7 @@ export function SignalCard({ signal, stats, now, livePrice, candles }: SignalCar
         href={`/signals/${signal.id}`}
         className={[
           "flex min-h-12 items-center justify-center rounded-2xl font-display text-lg font-bold",
-          signal.expired
+          finished
             ? "border border-line text-muted"
             : // On a phone this is the screen's one primary action. On a wide
               // screen the chart is already open beside the list, so opening an
@@ -151,7 +159,7 @@ export function SignalCard({ signal, stats, now, livePrice, candles }: SignalCar
               "bg-yellow text-bg lg:border lg:border-line lg:bg-transparent lg:text-text",
         ].join(" ")}
       >
-        {signal.expired ? "See how it went" : "See it on the chart"}
+        {finished ? "See how it went" : "See it on the chart"}
       </Link>
     </Card>
   );

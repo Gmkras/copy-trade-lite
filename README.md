@@ -30,7 +30,8 @@ The demo path is the same as [step 7 below](#run-it-locally): Trade → Buy → 
 | SHOULD 8 | Persisted signal history with per-author track record | ✅ Done (`copy-trade-signals`) — libSQL: a local file, or Turso when deployed |
 | STRETCH | Mobile-friendly layout | ✅ Done — designed at 375 px first, verified in a real browser |
 | Polish | Desktop layout | ✅ Done (`desktop-layout`) — from 1024 px the feed shows the list beside the open idea and Trade becomes a trading desk (coins on top, chart, order ticket, account); the nav moves from the bottom bar to a top bar |
-| STRETCH | WebSocket, outcome marking (hit TP/SL), leaderboard | ⏳ Not done — see [What's next](#whats-next) |
+| STRETCH | Outcome marking (hit TP / hit SL / expired) with a per-author record | ✅ Done (`signal-outcomes`) — every idea is settled from its market's candles and the feed shows "✅ It worked", "❌ It didn't work" or "⏱ Time ran out", plus "1 of 2 worked" per author |
+| STRETCH | WebSocket, leaderboard page | ⏳ Not done — see [What's next](#whats-next) |
 | Delivery | Deployed link with a passcode-gated write path (instead of a recording) | ✅ Done (`deploy-demo`) — [Try the deployed demo](#try-the-deployed-demo) |
 
 Proof on the Aptos testnet explorer: first order from the script `0x5f433998292cf8350bbbb92e52fd334c70e4c92c98132b90caf6f73291f86875`, builder-fee approval `0x0c237551c7a68fad58c6999cc0f883fc78bce6d947cf845f384d34fa5e198f24`, order placed from the Trade screen `0x9e3276151dae78bb1a41e9dd7ae16148a42f90e9bb467df165dd43e51b9cf7af`, **signal copied with one tap** `0x54c0e82a700bec0d4372b0ed6a589c10732f988b5bb306e02abac5acc924dff3`. From the **deployed** app: order `0xf2bcbd0dcdda8466a7abfe501e48f3a41abc58f0685967e89fad7e2a9f49d027`, copy `0x9503723e776d545f5a66b3c24dafb44c5fb9bcffe7c427396c4159ee4232909b`.
@@ -161,6 +162,7 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
    4. The new card is first in the feed: "BTC goes up ↑", the BTC candles of the last hour with the **Entry**, **Take profit** and **Stop loss** lines, "now $… · right at the entry", "live · 4h left · copied 0×". Tap the yellow **See it on the chart**.
    5. The full-size chart: the same three lines, the live price, and the copies. Type a different name and tap **Copy this trade** once → toast with the explorer link → a marker appears on the chart and the count becomes "Copied 1×".
    6. Back on **Feed**, the card says "copied 1×" and the author line shows "1 idea · 1 copy". On **Trade**, the position grew.
+   7. Leave it running. When the price reaches the take profit or the stop loss — or when the hold ends — the card says **"✅ It worked"**, **"❌ It didn't work"** or **"⏱ Time ran out"**, the author line gains "1 of 1 worked", and the idea can no longer be copied. To see it in a minute, post an idea with a take profit of `0.01` %.
 
    The first request after `pnpm dev` compiles the routes and can take ~8 s; after that the price and account refresh every 5 s and the feed every 10 s.
 
@@ -278,6 +280,7 @@ lib/signals/db.ts       libSQL client at DATABASE_URL (file locally, Turso deplo
 lib/signals/repo.ts     parameterised statements, zod-parsed rows, copy counts and author stats (tests)
 lib/signals/feed.ts     the one feed loader: signals, author stats, live prices and last-hour candles per market
 lib/signals/math.ts     TP/SL prices, expiry, plain-language wording, strip geometry, marker clustering (tests)
+lib/signals/outcome.ts  settleSignal (pure: candles + levels → tp/sl/expired), settleAll (one read per market), plain badges (tests)
 lib/schemas.ts          zod OrderInput (.strict()) + shared response types (client-safe)
 lib/api.ts              apiHandler: guard before parsing, one envelope, 401/404/422/400 readable errors, safe 502 (tests)
 lib/format.ts           money, amount, pct, timeAgo (client-safe)
@@ -308,6 +311,7 @@ Graded explicitly by the brief; enforced in code, not by convention:
 - **Validate before signing** — `toValidOrderSize` (finite, > 0, ≥ market minimum, ≤ `MAX_ORDER_SIZE`) and `assertTpSlSides` run before any pricing or signing; every rejection is a plain-language message with the allowed range.
 - **One validated boundary** — `POST /api/order` and `POST /api/signals/[id]/copy` are the only ways an order enters; both bodies are `.strict()` zod schemas (coin, direction, size, names — nothing else) and both call the same `placeMarketOrder`. A copy cannot choose the price, the builder address, the fee or the exit levels: they come from the stored signal and the server constants. Errors never expose stacks, URLs or keys (`lib/api.ts`, tested).
 - **The entry price is a server fact** — `POST /api/signals` reads the live mid itself; `SignalInput` has no `entryPrice` field and `.strict()` rejects one (tested).
+- **Honest about outcomes** — an idea is settled from its market's candles, not from fills, so an idea nobody copied is judged by the same rule as one copied ten times. When a single candle reached **both** levels, the order of the two moves inside it is unknowable and the app records the **stop loss**: it never claims a win the data cannot support. Once written, an outcome is never recomputed.
 - **Honest about fills** — an immediate-or-cancel order can be sent without filling, so copies record the reference price and the UI says "at about $…"; the receipt reports `tpSlAttached: false` if the exchange ever refuses the exit levels. A copy whose order succeeded is never reported as a failure, even if writing it to the database fails (that case is logged loudly).
 - **The database holds no secrets** — ideas, copies and the builder-approval record (addresses, a fee cap and a public transaction hash). If it is unreachable the feed says so in plain words and the Trade screen keeps working; orders never touch it.
 - **Unhappy paths** — every SDK/chain error becomes a `TradeError` with a readable message and the original error kept on `cause`; success is never reported without a transaction hash; an empty account (404 before the first deposit) is a state, not an error.
@@ -316,10 +320,9 @@ Graded explicitly by the brief; enforced in code, not by convention:
 
 With another day, in this order:
 
-1. **Outcome marking** (STRETCH): read one-minute candles since a signal was posted and mark it "hit take profit", "hit stop loss" or "expired" — the piece that turns the history into a real track record.
-2. **A tiny leaderboard** from the author stats already computed (`ideas`, `copies`, and then hit rate).
-3. **WebSocket** price and position updates replacing the polling, keeping polling as the fallback.
-4. **Wallet-based signing** so each person copies from their own wallet instead of the shared server key — the change that removes the biggest risk below.
+1. **Real-time updates**: an SSE route forwarding the SDK's price and position subscriptions, with the current polling kept as the fallback — so an outcome appears the moment it happens instead of on the next 10-second poll.
+2. **A leaderboard page** from the author record already computed (`ideas`, `copies`, `settled`, `won`), with a third navigation tab.
+3. **Wallet-based signing** so each person copies from their own wallet instead of the shared server key — the change that removes the biggest risk below.
 
 ### Biggest risk in this submission
 

@@ -170,6 +170,10 @@ export type AuthorStats = {
   author: string;
   ideas: number;
   copies: number;
+  /** Ideas of this author that already have an outcome. */
+  settled: number;
+  /** Of those, how many hit the take profit. The UI shows "1 of 2 worked". */
+  won: number;
 };
 
 /** A signal plus whether it can still be copied. */

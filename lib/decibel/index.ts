@@ -10,7 +10,17 @@ import "server-only";
  */
 export { getDecibel, padAddress, type Decibel } from "./client";
 export { emptyAccount, getAccountState, positionPnl, type AccountReader } from "./account";
-export { assertTradableSize, getCandles, getCandlesByRange, getCandlesFor, getPrice, getPrices, listMarkets, toMarket } from "./markets";
+export {
+  assertTradableSize,
+  getCandles,
+  getCandlesByRange,
+  getCandlesFor,
+  getCandlesSince,
+  getPrice,
+  getPrices,
+  listMarkets,
+  toMarket,
+} from "./markets";
 export { TradeError, humanizeSdkError, errorText, isNotFoundError, type TradeErrorCode } from "./errors";
 export {
   PROTOCOL_MAX_BUILDER_FEE_BPS,

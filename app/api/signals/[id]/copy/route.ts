@@ -24,8 +24,12 @@ export const POST = apiHandler<CopyReceipt, CopyInput>({
     const repo = signalsRepo();
     const signal = await repo.getSignal(params.id ?? "");
     if (!signal) throw new NotFoundError("That idea was not found.");
-    if (isExpired(signal)) {
-      throw new TradeError("SIGNAL_EXPIRED", "This idea has expired, so it can't be copied anymore. Pick a live one from the feed.");
+    // Finished either way: the clock ran out, or a level was already reached.
+    if (isExpired(signal) || signal.outcome !== null) {
+      throw new TradeError(
+        "SIGNAL_EXPIRED",
+        "This idea is finished, so it can't be copied anymore. Pick a live one from the feed.",
+      );
     }
 
     const size = body.size ?? signal.size;

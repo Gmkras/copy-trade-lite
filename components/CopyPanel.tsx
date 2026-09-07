@@ -7,6 +7,7 @@ import { PasscodeSheet } from "@/components/PasscodeSheet";
 import { useToast } from "@/components/Toast";
 import { useDemoPasscode } from "@/hooks/useDemoPasscode";
 import { postEnvelope } from "@/hooks/usePoll";
+import { outcomeShortLabel } from "@/lib/signals/outcome";
 import { amount, money } from "@/lib/format";
 import type { CopyReceipt, SignalView } from "@/lib/schemas";
 
@@ -28,7 +29,11 @@ export function CopyPanel({ signal, copierName = "You", onCopied }: CopyPanelPro
 
   const sizeNumber = Number(size);
   const sizeValid = Number.isFinite(sizeNumber) && sizeNumber > 0;
-  const canSubmit = !signal.expired && sizeValid && copier.trim().length > 0 && !pending;
+  // A finished idea cannot be copied: it already reached a level or ran out of
+  // time, so there is nothing left to follow.
+  const result = outcomeShortLabel(signal.outcome);
+  const finished = result !== null || signal.expired;
+  const canSubmit = !finished && sizeValid && copier.trim().length > 0 && !pending;
 
   async function submit() {
     if (!canSubmit || inFlight.current) return;
@@ -68,7 +73,7 @@ export function CopyPanel({ signal, copierName = "You", onCopied }: CopyPanelPro
               value={copier}
               onChange={(e) => setCopier(e.target.value)}
               maxLength={40}
-              disabled={signal.expired}
+              disabled={finished}
               className="min-h-12 rounded-card border border-line bg-surface px-4 text-text disabled:opacity-60"
             />
           </label>
@@ -79,18 +84,18 @@ export function CopyPanel({ signal, copierName = "You", onCopied }: CopyPanelPro
               autoComplete="off"
               value={size}
               onChange={(e) => setSize(e.target.value)}
-              disabled={signal.expired}
+              disabled={finished}
               aria-invalid={!sizeValid}
               className={["min-h-12 rounded-card border bg-surface px-4 font-display text-lg text-text disabled:opacity-60", sizeValid ? "border-line" : "border-down"].join(" ")}
             />
           </label>
         </div>
         <BigButton type="submit" disabled={!canSubmit} pending={pending} pendingLabel="Copying…">
-          {signal.expired ? "This idea has expired" : "Copy this trade"}
+          {result ?? (signal.expired ? "This idea has expired" : "Copy this trade")}
         </BigButton>
         <p className="text-center text-sm text-muted">
-          {signal.expired
-            ? "Expired ideas can't be copied. Pick a live one from the feed."
+          {finished
+            ? "This idea is finished, so it can't be copied. Pick a live one from the feed."
             : "Same trade, from your own testnet account, with the author's exit levels attached."}
         </p>
       </form>

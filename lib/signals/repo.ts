@@ -44,7 +44,13 @@ const CopyRow = z.object({
   created_at: z.number(),
 });
 
-const StatsRow = z.object({ author: z.string(), ideas: z.number(), copies: z.number() });
+const StatsRow = z.object({
+  author: z.string(),
+  ideas: z.number(),
+  copies: z.number(),
+  settled: z.number(),
+  won: z.number(),
+});
 
 export type NewSignal = {
   author: string;
@@ -84,10 +90,26 @@ const INSERT_COPY = `
 
 const SELECT_COPIES = `SELECT * FROM signal_copies WHERE signal_id = ? ORDER BY created_at ASC`;
 
+/**
+ * `count(DISTINCT … CASE …)` and not `sum(...)`: the LEFT JOIN multiplies a
+ * signal's row by its number of copies, so a plain sum would count a settled
+ * idea once per copy.
+ */
 const SELECT_STATS = `
-  SELECT s.author AS author, count(DISTINCT s.id) AS ideas, count(c.id) AS copies
+  SELECT s.author AS author,
+         count(DISTINCT s.id) AS ideas,
+         count(c.id) AS copies,
+         count(DISTINCT CASE WHEN s.outcome IS NOT NULL THEN s.id END) AS settled,
+         count(DISTINCT CASE WHEN s.outcome = 'tp' THEN s.id END) AS won
   FROM signals s LEFT JOIN signal_copies c ON c.signal_id = s.id
   GROUP BY s.author ORDER BY copies DESC, ideas DESC, author ASC`;
+
+/**
+ * Records how an idea ended. `AND outcome IS NULL` makes it idempotent: two
+ * concurrent feed loads cannot fight, the first writer wins, and a settled
+ * idea is never re-judged.
+ */
+const UPDATE_OUTCOME = `UPDATE signals SET outcome = ? WHERE id = ? AND outcome IS NULL`;
 
 function toSignal(row: z.infer<typeof SignalRow>): Signal {
   return {
@@ -201,6 +223,11 @@ export function createRepo(db: Client) {
         txHash: input.txHash,
         createdAt,
       };
+    },
+
+    async setOutcome(id: string, outcome: "tp" | "sl" | "expired"): Promise<void> {
+      await ready();
+      await db.execute({ sql: UPDATE_OUTCOME, args: [outcome, id] });
     },
 
     async authorStats(): Promise<AuthorStats[]> {

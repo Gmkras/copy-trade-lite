@@ -34,6 +34,21 @@ export function rangeToInterval(range: CandleRange): RangeSpec {
   }
 }
 
+/**
+ * The interval to use for a span of history: coarse enough that a week is not
+ * ten thousand points, fine enough to see the shape. An aggregated candle keeps
+ * the extremes of its period, so a coarser interval never hides a level being
+ * reached — only the order of two crossings inside one candle (see
+ * `lib/signals/outcome.ts`).
+ */
+export function intervalForSpan(spanMs: number): CandleInterval {
+  const HOUR = 60 * MINUTE;
+  if (spanMs <= 4 * HOUR) return "1m";
+  if (spanMs <= 24 * HOUR) return "5m";
+  if (spanMs <= 7 * 24 * HOUR) return "15m";
+  return "1h";
+}
+
 /** Plain, short words for the range, for "+0.4% · last hour" next to the price. */
 export function rangeLabel(range: CandleRange): string {
   switch (range) {

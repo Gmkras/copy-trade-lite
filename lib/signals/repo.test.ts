@@ -60,8 +60,34 @@ describe("signals repo (libSQL, in memory)", () => {
     await repo.addCopy(a.id, { copier: "Ben", size: 0.00002, fillPrice: 80_000, txHash: "0x1" });
     await repo.addCopy(a.id, { copier: "Cid", size: 0.00002, fillPrice: 80_000, txHash: "0x2" });
     expect(await repo.authorStats()).toEqual([
-      { author: "Ana", ideas: 2, copies: 2 },
-      { author: "Ben", ideas: 1, copies: 0 },
+      { author: "Ana", ideas: 2, copies: 2, settled: 0, won: 0 },
+      { author: "Ben", ideas: 1, copies: 0, settled: 0, won: 0 },
+    ]);
+  });
+
+  it("stores an outcome once and never overwrites it", async () => {
+    const s = await repo.createSignal(base);
+    expect((await repo.getSignal(s.id))?.outcome).toBeNull();
+    await repo.setOutcome(s.id, "tp");
+    expect((await repo.getSignal(s.id))?.outcome).toBe("tp");
+    await repo.setOutcome(s.id, "sl"); // a later crossing must not rewrite history
+    expect((await repo.getSignal(s.id))?.outcome).toBe("tp");
+  });
+
+  it("counts settled and won per author without letting copies inflate them", async () => {
+    const won = await repo.createSignal(base);
+    const lost = await repo.createSignal({ ...base, createdAt: 2_000 });
+    await repo.createSignal({ ...base, createdAt: 3_000 }); // still open
+    await repo.createSignal({ ...base, author: "Ben", createdAt: 4_000 });
+    // Three copies on the winning idea: the LEFT JOIN must not count it three times.
+    for (const copier of ["Ben", "Cid", "Dee"]) {
+      await repo.addCopy(won.id, { copier, size: 0.00002, fillPrice: 80_000, txHash: `0x${copier}` });
+    }
+    await repo.setOutcome(won.id, "tp");
+    await repo.setOutcome(lost.id, "sl");
+    expect(await repo.authorStats()).toEqual([
+      { author: "Ana", ideas: 3, copies: 3, settled: 2, won: 1 },
+      { author: "Ben", ideas: 1, copies: 0, settled: 0, won: 0 },
     ]);
   });
 

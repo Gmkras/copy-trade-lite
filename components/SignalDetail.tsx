@@ -10,6 +10,7 @@ import { fetchEnvelope, usePoll } from "@/hooks/usePoll";
 import { amount, money, timeAgo } from "@/lib/format";
 import type { Candle, CandleRange, CandlesResponse, SignalCopy, SignalDetail as SignalDetailData, SignalView } from "@/lib/schemas";
 import { describe, groupCopyMarkers, headline, timeLeftLabel } from "@/lib/signals/math";
+import { outcomeLabel } from "@/lib/signals/outcome";
 
 type SignalDetailProps = {
   initialSignal: SignalView;
@@ -29,6 +30,7 @@ export function SignalDetail({ initialSignal, initialCopies }: SignalDetailProps
   const price = detail.data?.price ?? null;
   const now = detail.updatedAt ?? signal.createdAt;
   const digits = signal.entryPrice >= 100 ? 0 : 2;
+  const result = outcomeLabel(signal.outcome);
 
   // Other ranges are fetched once on request; the polled 4h data stays the default.
   const [range, setRange] = useState<CandleRange>(POLLED_RANGE);
@@ -68,10 +70,20 @@ export function SignalDetail({ initialSignal, initialCopies }: SignalDetailProps
     <div className="flex flex-col gap-5">
       <div>
         <p className="text-sm text-muted">
-          {signal.author} {headline(signal)} · {timeAgo(signal.createdAt, now)} ·{" "}
-          {signal.expired ? "expired" : `live · ${timeLeftLabel(signal, now)}`}
+          {signal.author} {headline(signal)} · {timeAgo(signal.createdAt, now)}
+          {result ? "" : ` · live · ${timeLeftLabel(signal, now)}`}
         </p>
         <h1 className="mt-1 text-2xl leading-tight">{describe(signal)}</h1>
+        {result ? (
+          <p
+            className={[
+              "mt-2 font-display text-lg font-bold",
+              signal.outcome === "tp" ? "text-up" : signal.outcome === "sl" ? "text-down" : "text-muted",
+            ].join(" ")}
+          >
+            {result.text}
+          </p>
+        ) : null}
         {signal.note ? <p className="mt-2 text-muted">“{signal.note}”</p> : null}
       </div>
 

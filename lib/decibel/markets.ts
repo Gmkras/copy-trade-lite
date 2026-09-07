@@ -2,7 +2,7 @@
  * Market list and live price in human units, for the HTTP contract.
  * Not guarded (scripts may use it); app code imports via `@/lib/decibel`.
  */
-import { rangeToInterval, type CandleInterval } from "../charts";
+import { intervalForSpan, rangeToInterval, type CandleInterval } from "../charts";
 import type { Candle, CandleRange, CandlesResponse, Market, Price } from "../schemas";
 import { getDecibel } from "./client";
 import { TradeError } from "./errors";
@@ -63,6 +63,20 @@ export async function getCandles(marketName: string, window: CandleWindow): Prom
   return rows
     .map((r) => ({ t: r.t, o: r.o, h: r.h, l: r.l, c: r.c, v: r.v }))
     .sort((a, b) => a.t - b.t);
+}
+
+/**
+ * Every candle from `sinceMs` until now, at the interval that fits the span
+ * (`intervalForSpan`). Used to settle ideas: the window is however long the
+ * idea has been open, which is not a fixed count of candles.
+ */
+export async function getCandlesSince(marketName: string, sinceMs: number): Promise<Candle[]> {
+  const d = getDecibel();
+  const endTime = Date.now();
+  const startTime = Math.min(sinceMs, endTime);
+  const interval = intervalForSpan(endTime - startTime);
+  const rows = await d.read.candlesticks.getByName({ marketName, interval, startTime, endTime });
+  return rows.map((r) => ({ t: r.t, o: r.o, h: r.h, l: r.l, c: r.c, v: r.v })).sort((a, b) => a.t - b.t);
 }
 
 function intervalMs(interval: CandleInterval): number {
