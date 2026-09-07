@@ -16,7 +16,7 @@
 ## 4. Documentation and the live check (≈30 min)
 
 - [x] 4.1 README: status rows MUST 3 and SHOULD 6 mention the chart with types, ranges and zoom; demo path step 1 names the chart; API contract row for `/api/candles`; project structure (`MarketChart`, candles route). Interview guide gains the section for this change. Verify: `grep -n PriceChart README.md` → none.
-- [ ] 4.2 After the push and the Vercel deploy: at 375 px on the live URL, Trade shows the chart and the button above the fold; a feed card switches to 1d; the detail switches to Line; `curl` the candles route for 1w. Record the deployed order hash in the commit body.
+- [x] 4.2 After the push and the Vercel deploy: at 375 px on the live URL, Trade shows the chart and the button above the fold; a feed card switches to 1d; the detail switches to Line; `curl` the candles route for 1w. Record the deployed order hash in the commit body.
 
 ## 5. Change review
 
