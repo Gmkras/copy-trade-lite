@@ -6,7 +6,7 @@ A dead-simple trading app on **Decibel (Aptos testnet)** that a smart 12-year-ol
 
 ## Try the deployed demo
 
-**<https://copy-trade-lite-gilt.vercel.app>** — open it on your phone or in a 375 px viewport.
+**<https://copy-trade-lite-gilt.vercel.app>** — open it on a laptop or on your phone; the layout follows the screen.
 
 - **Browsing is open:** the ideas feed, every idea on its chart, the account card and the live prices need nothing. **Every card in the feed already shows its coin's candles with the Entry, Take profit and Stop loss lines and where the price is now**; "See it on the chart" opens the full-size chart with the copies. None of that needs a code; only the final "Copy this trade" button does.
 - **Trading needs the demo code** included in the submission email. The first time you tap the yellow button the app asks for it, remembers it in your browser, and never asks again. Without the code every write route answers `401` and nothing is signed.
@@ -29,6 +29,7 @@ The demo path is the same as [step 7 below](#run-it-locally): Trade → Buy → 
 | SHOULD 7 | One-click copy from the copier's own account, builder code attached | ✅ Done (`copy-trade-signals`) — "Copy this trade" |
 | SHOULD 8 | Persisted signal history with per-author track record | ✅ Done (`copy-trade-signals`) — libSQL: a local file, or Turso when deployed |
 | STRETCH | Mobile-friendly layout | ✅ Done — designed at 375 px first, verified in a real browser |
+| Polish | Desktop layout | ✅ Done (`desktop-layout`) — from 1024 px the feed shows the list beside the open idea and Trade becomes a trading desk (coins on top, chart, order ticket, account); the nav moves from the bottom bar to a top bar |
 | STRETCH | WebSocket, outcome marking (hit TP/SL), leaderboard | ⏳ Not done — see [What's next](#whats-next) |
 | Delivery | Deployed link with a passcode-gated write path (instead of a recording) | ✅ Done (`deploy-demo`) — [Try the deployed demo](#try-the-deployed-demo) |
 
@@ -38,6 +39,11 @@ Proof on the Aptos testnet explorer: first order from the script `0x5f433998292c
   <img src="docs/feed-charts.png" width="300" alt="The ideas feed at 375 px: each card shows the author, a headline such as BTC goes up, the coin's one-minute candles with the Entry, Take profit and Stop loss lines, a sentence about where the price is now, and a yellow See it on the chart button" />
   <img src="docs/signal-chart.png" width="300" alt="An idea on its chart on the deployed app: one-minute BTC candles with the Entry line in yellow, Take profit in green and Stop loss in red, the live price, and the Copy this trade button below" />
   <br /><sub>SHOULD 6: every card in the feed draws its coin's candles with the idea's three lines (left); "See it on the chart" opens the full-size chart with the copies and the one-tap copy (right, on the deployed app).</sub>
+</p>
+
+<p align="center">
+  <img src="docs/trade-desktop.png" width="620" alt="The Trade screen on a laptop: coins across the top, a large BTC candlestick chart on the left, the Up/Down order ticket with the yellow Buy button beside it, and the account with equity, available, PnL and positions on the right" />
+  <br /><sub>From 1024 px the same screens use the width: Trade becomes a trading desk (coins, chart, order ticket, account) and the feed shows the list beside the open idea. See <a href="docs/feed-desktop.png">the wide feed</a>.</sub>
 </p>
 
 > **Play names, one account.** Authors and copiers are display names typed in the form; every order is signed with the single testnet key in `.env`. There is no login — that is out of scope for this take-home and is called out under [Safety](#safety).
@@ -242,6 +248,9 @@ The app runs on any Node host. It was deployed on Vercel with a Turso database, 
 
 - [ ] `/` shows the yellow headline in Space Grotesk on black; no other saturated color.
 - [ ] Tap **Trade** → `/trade`, tab turns yellow; tap **Feed** → back.
+- [ ] At 375 px the nav is an opaque bar at the bottom with an icon and a label per tab; nothing behind it shows through.
+- [ ] At 1280 px the nav is a top bar with the wordmark and "play money · testnet"; `/` shows the ideas list beside the open idea's chart and copy panel, and the only yellow action is **Copy this trade**; `/trade` shows coins across the top, the chart on the left, the ticket beside it and the account on the right, all without scrolling.
+- [ ] At 1280 px **Post an idea** opens as a centered dialog; at 375 px it still slides up from the bottom.
 
 **Quality gates:**
 
@@ -252,14 +261,15 @@ pnpm test        # vitest: chain units, order safety checks, repo, api, passcode
 pnpm build       # production build; must succeed
 ```
 
-**Server-only boundary (optional):** add `import { env } from "@/lib/env";` to `components/BottomNav.tsx` and run `pnpm build`. It must fail with `You're importing a module that depends on "server-only"`. Remove the line; the build passes again.
+**Server-only boundary (optional):** add `import { env } from "@/lib/env";` to `components/AppNav.tsx` and run `pnpm build`. It must fail with `You're importing a module that depends on "server-only"`. Remove the line; the build passes again.
 
 ## Project structure
 
 ```
 app/                    Next.js App Router: layout, feed (/), /trade, /signals/[id]
 app/api/                markets, price/[market], candles/[market]?range=, account, order, signals, signals/[id], signals/[id]/copy — every route goes through apiHandler
-components/             shell (BigButton, Card, Sheet, Toast, BottomNav), trading (CoinPills, SideToggle, SizePicker, TradeForm with the price hero and chart, AccountCard, TradeScreen), signals (Feed, SignalCard, IdeaStrip fallback, PostIdeaSheet, SignalDetail, CopyPanel), MarketChart / MarketChartInner (lightweight-charts with the type · range · zoom toolbar, used by all three)
+components/             shell (BigButton, Card, Sheet, Toast, AppNav — bottom bar on phones, top bar on wide screens), trading (CoinPills, MarketPanel with the price hero and chart, TradeForm as the order ticket, SideToggle, SizePicker, AccountCard, TradeScreen laying the four panels out), signals (Feed, SignalCard, IdeaStrip fallback, PostIdeaSheet, SignalDetail, CopyPanel, DetailRail / FeedRail for the wide second column), MarketChart / MarketChartInner (lightweight-charts with the type · range · zoom toolbar, used by all three)
+hooks/useMediaQuery.ts  the one breakpoint hook (useSyncExternalStore, server snapshot false) for the few places CSS cannot decide
 lib/charts.ts           range → candle interval, range change, plain-language range labels (tests)
 hooks/usePoll.ts        polling with last-good-data + stale flag, fetch/post envelope helpers (tests)
 hooks/useDemoPasscode.ts  sends the stored demo code, asks for it on a 401 and retries (PasscodeSheet)
@@ -334,6 +344,7 @@ What the review actually caught — these are the changes I made to the generate
 - **Two honesty fixes.** A copy stores the *reference* price, not a confirmed fill, so the interface says "at about $…"; and a spec scenario used `DOGE/USD` as a market that "does not exist" — it does exist on testnet, so the scenario was corrected rather than left to pass by luck.
 - **A deploy that could not sign.** The first deployment refused every order with `FEE_BOUND`: the approval record `pnpm approve` writes was a gitignored local file, which a serverless host never has. The plan had not seen it because the local file was always there. The record moved into the database (design D7 of `deploy-demo`), and the agent's first reading of the result — "fills went up, so the order went through" — was wrong too: the extra fill was a local one. The deployed order was only counted as proof once the network log showed the `200` and the explorer link.
 - **A chart nobody found.** A reviewer's first comment was "I think you missed *visualise a signal on the chart*". The chart existed, one tap away — behind a card button labelled "Copy", which reads as "trade now" and, on the public URL, as "needs the code". The feed now shows every idea on its coin's own candles, and the button says where it goes. Two drafts of that card were thrown away the same hour: a level strip and a hand-drawn SVG line, both replaced by the real chart because a reviewer expects the chart, not a picture of one (`signal-visible-in-feed`, `design.md.old` and `.old2`).
+- **A desktop layout that repeated the same mistake, twice.** The first wide Trade design put the chart inside the form beside the account card; measured at 1280 × 800, the yellow button landed at **908 px** — below the fold, worse than on a phone. Rebuilt as a trading desk (coins on top, chart, order ticket, account) it measures 572. Then the walkthrough caught two more: the wide feed had *two* kinds of yellow action, and the tab order ran chart-then-ticket while the eye read ticket-then-chart. Fixed by making the card action secondary only on wide screens and by putting the chart on the left — which also removed every CSS `order` class, so the DOM, the layout and the keyboard now agree at any width.
 - **A layout that only fit on paper.** The design for the Trade-screen chart said "160 px keeps the yellow button above the fold, ≈ 740 by arithmetic". The browser measured 868. Ten toolbar controls need two rows at 375 px, so the chart became 110 px, the hero one line and the gaps 16 px, and the number in the design is now the measured one (732), with the previous version kept as `design.md.old`.
 - **Chart labels that hid their names.** Turning off the axis label on a card's level line also removed its title in lightweight-charts, so the first version of the cards drew unlabeled lines; the fix was a small collision rule (the nearest label gives way, the entry and the live price always win) rather than hiding anything.
 - **A gate that ran too late.** Task 2.2 said to call `assertDemoAccess` as the first statement of each write route; inside `apiHandler` that would have run *after* the body was parsed. The wrapper gained a `guard` that runs before anything is read, so a refused request never reaches the schema, the SDK or the database.
@@ -344,7 +355,7 @@ Two decisions I overrode after seeing the result: the size range stays out of th
 
 Each feature is an OpenSpec change (`openspec/changes/<name>/`) with a proposal, a delta spec, a design and a task list; tasks are implemented one by one, each with its own verification and commit, then the change is reviewed against `specs/constitution.md` and archived. When a design decision changes during implementation, the previous artifact is kept next to it as `*.old`. The archive folder is the record of what was planned, what was built and what changed after review.
 
-Nine changes, in order: `bootstrap-app` → `decibel-testnet-connection` → `trade-screen` → `copy-trade-signals` → `polish-and-delivery` → `refresh-app-shell-spec` → `deploy-demo` → `signal-visible-in-feed` → `trade-chart`. `specs/constitution.md` holds the rules every one of them was checked against, each written as something you can actually run.
+Ten changes, in order: `bootstrap-app` → `decibel-testnet-connection` → `trade-screen` → `copy-trade-signals` → `polish-and-delivery` → `refresh-app-shell-spec` → `deploy-demo` → `signal-visible-in-feed` → `trade-chart` → `desktop-layout`. `specs/constitution.md` holds the rules every one of them was checked against, each written as something you can actually run.
 
 The safety review is in [`docs/SAFETY_REVIEW.md`](docs/SAFETY_REVIEW.md): every rule the brief grades, mapped to the file that enforces it and the check that was run, with the observed output.
 

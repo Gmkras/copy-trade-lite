@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { FeedRail } from "@/components/FeedRail";
 import { SignalDetail } from "@/components/SignalDetail";
 import { isExpired, signalsRepo } from "@/lib/signals";
 
@@ -20,11 +21,16 @@ export default async function SignalPage({ params }: { params: Promise<{ id: str
   if (!data) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-6">
-      <Link href="/" className="inline-flex min-h-11 items-center self-start pr-3 text-sm text-muted hover:text-text">
-        ← All ideas
-      </Link>
-      <SignalDetail initialSignal={data.signal} initialCopies={data.copies} />
+    // From 1024 px the list of ideas sits beside the open one, so a reader can
+    // move between ideas without going back (design D2).
+    <main className="mx-auto w-full max-w-lg flex-1 p-6 lg:grid lg:max-w-6xl lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] lg:items-start lg:gap-8">
+      <FeedRail currentId={data.signal.id} />
+      <div className="flex flex-col gap-4">
+        <Link href="/" className="inline-flex min-h-11 items-center self-start pr-3 text-sm text-muted hover:text-text lg:hidden">
+          ← All ideas
+        </Link>
+        <SignalDetail initialSignal={data.signal} initialCopies={data.copies} />
+      </div>
     </main>
   );
 }

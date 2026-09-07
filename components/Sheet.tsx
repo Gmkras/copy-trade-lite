@@ -34,7 +34,8 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   return (
     <div
       className={[
-        "fixed inset-0 z-40 flex items-end justify-center",
+        // A bottom sheet on phones, a centered dialog from 1024 px.
+        "fixed inset-0 z-40 flex items-end justify-center lg:items-center",
         open ? "pointer-events-auto" : "pointer-events-none",
       ].join(" ")}
       aria-hidden={!open}
@@ -58,8 +59,8 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
         aria-labelledby={titleId}
         className={[
           "relative flex max-h-[85dvh] w-full max-w-lg flex-col rounded-t-card border border-line bg-surface",
-          "transition-transform duration-200 ease-out",
-          open ? "translate-y-0" : "translate-y-full",
+          "transition-transform duration-200 ease-out lg:rounded-card lg:transition-opacity",
+          open ? "translate-y-0 lg:opacity-100" : "translate-y-full lg:translate-y-0 lg:opacity-0",
         ].join(" ")}
       >
         <div className="flex items-center justify-between px-4 pt-4">

@@ -16,7 +16,7 @@ export default async function TradePage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-6">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-6 lg:max-w-6xl">
       <h1 className="text-3xl">Trade</h1>
       {problem ? <p className="text-muted">{problem}</p> : <TradeScreen markets={markets} />}
     </main>

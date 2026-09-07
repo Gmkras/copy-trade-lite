@@ -142,7 +142,13 @@ export function SignalCard({ signal, stats, now, livePrice, candles }: SignalCar
         href={`/signals/${signal.id}`}
         className={[
           "flex min-h-12 items-center justify-center rounded-2xl font-display text-lg font-bold",
-          signal.expired ? "border border-line text-muted" : "bg-yellow text-bg",
+          signal.expired
+            ? "border border-line text-muted"
+            : // On a phone this is the screen's one primary action. On a wide
+              // screen the chart is already open beside the list, so opening an
+              // idea is navigation and the yellow belongs to "Copy this trade"
+              // (constitution P1: one kind of primary action per screen).
+              "bg-yellow text-bg lg:border lg:border-line lg:bg-transparent lg:text-text",
         ].join(" ")}
       >
         {signal.expired ? "See how it went" : "See it on the chart"}

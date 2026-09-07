@@ -32,7 +32,12 @@
 
   body {
     min-height: 100dvh;
-    background: var(--color-bg);
+    /* A faint glow at the top, in a colour already in the palette, so the
+       empty space on a wide screen is not flat black (constitution V1). */
+    background:
+      radial-gradient(900px 480px at 50% -120px, var(--color-surface), transparent 70%),
+      var(--color-bg);
+    background-attachment: fixed;
     color: var(--color-text);
   }
 

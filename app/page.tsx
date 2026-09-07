@@ -1,3 +1,4 @@
+import { DetailRail } from "@/components/DetailRail";
 import { Feed } from "@/components/Feed";
 import { listMarkets } from "@/lib/decibel";
 import type { Market, SignalList } from "@/lib/schemas";
@@ -27,8 +28,11 @@ export default async function Home() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-6">
+    // One column on phones; from 1024 px the list keeps its width and the
+    // newest idea opens beside it (design D4).
+    <main className="mx-auto w-full max-w-lg flex-1 p-6 lg:grid lg:max-w-6xl lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] lg:items-start lg:gap-8">
       <Feed initial={initial} markets={markets} loadError={feedError} />
+      <DetailRail feed={initial} />
     </main>
   );
 }

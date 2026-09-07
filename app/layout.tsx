@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 
-import { BottomNav } from "@/components/BottomNav";
+import { AppNav } from "@/components/AppNav";
 import { ToastProvider } from "@/components/Toast";
 
 import "./globals.css";
@@ -34,10 +34,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col pb-16">
+      {/* Room for the nav: at the bottom on phones, at the top from 1024 px. */}
+      <body className="flex min-h-full flex-col pb-16 lg:pb-0 lg:pt-16">
         <ToastProvider>
           {children}
-          <BottomNav />
+          <AppNav />
         </ToastProvider>
       </body>
     </html>
