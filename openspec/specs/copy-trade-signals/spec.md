@@ -99,7 +99,7 @@ The system SHALL store every posted signal and every copy in a SQL database iden
 - **THEN** the response is 422 with the plain-language reason and nothing is recorded
 
 ### Requirement: The feed shows ideas as cards with one Copy action
-The home screen SHALL list signals as cards that a first-time visitor can read without tapping: the author's initial and name with "12m ago" and the author's summary, a headline that states the direction in words and colour ("BTC goes up ↑" in the up colour, "goes down ↓" in the down colour), a candlestick chart of the coin's own last hour — the same chart as the detail screen — with the idea drawn over it as price lines for Entry (yellow), Take profit (green) and Stop loss (red), always inside the chart's range, the live price labelled on the price axis, and one plain sentence about where the price is now, the TP and SL percentages, "copied N×", whether the idea is still live or expired, and a yellow button "See it on the chart" that opens the detail. When the coin's candles are unavailable the card SHALL instead draw a strip — Stop loss at one end, Entry between, Take profit at the other end, each with its price — with the same marker and sentence; when the live price is unavailable the card SHALL still draw the three levels and say the price could not be read. A card SHALL never fail to render because a fetch failed. It SHALL offer a "Post an idea" action that opens a bottom sheet form with market, Up/Down, TP %, SL %, hold hours, size, optional note and the author's name, showing the live entry price read-only and the TP/SL previews in dollars. The feed SHALL have an inviting empty state.
+The home screen SHALL list signals as cards that a first-time visitor can read without tapping: the author's initial and name with "12m ago" and the author's summary, a headline that states the direction in words and colour ("BTC goes up ↑" in the up colour, "goes down ↓" in the down colour), a chart of the coin's own price — the same chart component as the detail and the Trade screen — with the idea drawn over it as price lines for Entry (yellow), Take profit (green) and Stop loss (red), always inside the chart's range, the live price labelled on the price axis, a compact toolbar (chart type, range 1h · 4h · 1d · 1w, zoom − / + / reset) whose longer ranges load more history on demand, and one plain sentence about where the price is now, the TP and SL percentages, "copied N×", whether the idea is still live or expired, and a yellow button "See it on the chart" that opens the detail. When the coin's candles are unavailable the card SHALL instead draw a strip — Stop loss at one end, Entry between, Take profit at the other end, each with its price — with the same marker and sentence; when the live price is unavailable the card SHALL still draw the three levels and say the price could not be read. A card SHALL never fail to render because a fetch failed. It SHALL offer a "Post an idea" action that opens a bottom sheet form with market, Up/Down, TP %, SL %, hold hours, size, optional note and the author's name, showing the live entry price read-only and the TP/SL previews in dollars. The feed SHALL have an inviting empty state.
 
 #### Scenario: Card draws the idea
 - **GIVEN** a live Up idea on BTC/USD with entry $80,000, take profit $82,400 and stop loss $78,400, and a live mid of $80,600
@@ -110,6 +110,10 @@ The home screen SHALL list signals as cards that a first-time visitor can read w
 - **GIVEN** live ideas on BTC/USD and AMZN/USD
 - **WHEN** the feed is shown
 - **THEN** the BTC card shows BTC candles and the AMZN card AMZN candles, each with its own levels and live price, and pinching or scrolling on a card's chart zooms that chart
+
+#### Scenario: More history on a card
+- **WHEN** the user taps 1d on a card's toolbar
+- **THEN** that card alone loads and shows the last day of 15-minute candles with the same three lines; the other cards do not change, and the feed's refresh does not reset the chosen range
 
 #### Scenario: Down idea reads the same way
 - **GIVEN** a live Down idea whose take profit is below the entry
@@ -144,7 +148,7 @@ The home screen SHALL list signals as cards that a first-time visitor can read w
 - **THEN** the take-profit preview in dollars updates without submitting anything
 
 ### Requirement: The detail screen makes the idea obvious on a chart
-`/signals/{id}` SHALL show a candlestick chart of the signal's market with horizontal lines for Entry (yellow), Take profit (green) and Stop loss (red), one marker per cluster of copies made within ten minutes of each other (naming the copiers, or counting them when there are more than two), a one-sentence plain-language description ("Ana thinks BTC goes up: in at $80,000, out at $82,400 or $78,400, for 4 hours"), a size field defaulting to the author's size, and exactly one yellow button "Copy this trade" with pending, success (toast with explorer link) and error states. Expired ideas SHALL show the button disabled with "This idea has expired".
+`/signals/{id}` SHALL show the signal's market on the same chart component as the feed and the Trade screen, with horizontal lines for Entry (yellow), Take profit (green) and Stop loss (red), the full toolbar (chart type, range 1h · 4h · 1d · 1w, zoom − / + / reset), one marker per cluster of copies made within ten minutes of each other (naming the copiers, or counting them when there are more than two) placed so it does not cover the level labels, a one-sentence plain-language description ("Ana thinks BTC goes up: in at $80,000, out at $82,400 or $78,400, for 4 hours"; "You think …" when the author is "You"), a size field defaulting to the author's size, and exactly one yellow button "Copy this trade" with pending, success (toast with explorer link) and error states. Expired ideas SHALL show the button disabled with "This idea has expired".
 
 #### Scenario: Chart lines and marker
 - **GIVEN** a live signal with one copy
@@ -155,6 +159,10 @@ The home screen SHALL list signals as cards that a first-time visitor can read w
 - **GIVEN** Ben and Cid copied the idea nine minutes apart, and Dee, Eve and Fay within one minute half an hour later
 - **WHEN** the detail is opened
 - **THEN** the chart shows one marker "Ben, Cid copied" at Ben's minute and one marker "3 copied" at Dee's; no labels overlap
+
+#### Scenario: Wider range on the detail
+- **WHEN** the user taps 1w on the detail's toolbar
+- **THEN** the chart shows the last week of hourly candles with the same three lines and the copy markers still at their times
 
 #### Scenario: Copy from the detail
 - **WHEN** the user taps Copy this trade once
