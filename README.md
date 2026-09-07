@@ -323,11 +323,24 @@ Graded explicitly by the brief; enforced in code, not by convention:
 
 ## What's next
 
-With another day, in this order:
+With another day, I would prioritize the following improvements, in this order:
 
-1. **A leaderboard page** from the author record already computed (`ideas`, `copies`, `settled`, `won`), with a third navigation tab.
-2. **Wallet-based signing** so each person copies from their own wallet instead of the shared server key — the change that removes the biggest risk below.
-3. **A shared stream across instances**: today each serverless instance holds its own subscriptions, which is right for a demo and would become a broker if this ever had real traffic.
+1. **Make the chart full-screen and add a bottom tabbed panel for Positions / Orders / Fills** so the Trade screen behaves more like a focused trading workspace without losing access to account activity.
+2. **Add a 24-hour market stats bar** with price change, high, low and volume for faster market context at a glance.
+3. **Draw the current position entry price directly on the Trade chart** so users can immediately compare the live market price with where their position was opened.
+4. **Improve the chart toolbar** with a top-aligned control row, OHLC values on crosshair hover, and a countdown to the current candle close.
+5. **Fix overlapping chart labels and the clipped `u copied` text** so all chart annotations remain readable at every supported viewport size.
+6. **Bound chart autoscaling when stop-loss levels are extremely far from price** so an outlier SL cannot compress the candles into an unreadable area.
+7. **Show both price and percentage in each market pill and strengthen the horizontal scroll affordance with a fade gradient** so users can scan markets faster and understand that more items are available off-screen.
+8. **Add volume to the chart** to provide basic confirmation of price movement without adding unnecessary complexity.
+9. **Simplify the controls inside feed cards** so the signal itself stays visually dominant and secondary actions create less noise.
+10. **Increase the mobile chart height to 40vh** to give price action more room while keeping the primary trade action practical on smaller screens.
+
+Beyond that one-day polish pass, the next larger product changes would still be:
+
+- **A leaderboard page** from the author record already computed (`ideas`, `copies`, `settled`, `won`), with a third navigation tab.
+- **Wallet-based signing** so each person copies from their own wallet instead of the shared server key — the change that removes the biggest risk below.
+- **A shared stream across instances**: today each serverless instance holds its own subscriptions, which is right for a demo and would become a broker if this ever had real traffic.
 
 ### Biggest risk in this submission
 
