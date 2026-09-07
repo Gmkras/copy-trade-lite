@@ -17,7 +17,7 @@
 ## 4. Documentation and the live check (≈30 min)
 
 - [x] 4.1 README: status row for the STRETCH "outcome marking" moves to done with what it does; the demo path mentions the badge; a line in Safety about settling from candles and the conservative both-levels rule; `docs/SAFETY_REVIEW.md` rule 6 ("don't fake it") gains the same note. Interview guide gains its section. Verify: the README states the both-levels rule in one sentence.
-- [ ] 4.2 After the push and the Vercel deploy: on the live URL, an idea that has hit its level shows the badge, its author shows the record, and a settled idea's copy button is disabled. Record the deployment in the commit body.
+- [x] 4.2 After the push and the Vercel deploy: on the live URL, an idea that has hit its level shows the badge, its author shows the record, and a settled idea's copy button is disabled. Record the deployment in the commit body.
 
 ## 5. Change review
 

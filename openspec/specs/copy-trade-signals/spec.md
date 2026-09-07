@@ -51,12 +51,17 @@ The system SHALL store every posted signal and every copy in a SQL database iden
 - **THEN** the response is 502 or 422 with a readable message and nothing is stored
 
 ### Requirement: Signals can be listed and opened
-`GET /api/signals` SHALL return signals newest first with author, market, side, entry/TP/SL prices and percentages, size, note, creation and expiry times, copy count, a per-author summary (ideas posted, copies received), and, for every market that has at least one live signal, its live mid price and its last hour of one-minute candles, each keyed by market. A market whose price or candles cannot be read SHALL be omitted from that map without failing the request. `GET /api/signals/{id}` SHALL return the signal, its copies (copier, size, fill price, transaction hash, time), the live mid price, and the last 200 one-minute candles of its market for charting.
+`GET /api/signals` SHALL return signals newest first with author, market, side, entry/TP/SL prices and percentages, size, note, creation and expiry times, copy count, the outcome of each settled idea (`tp`, `sl`, `expired`, or none while it is still open), a per-author summary (ideas posted, copies received, ideas settled, ideas that hit the take profit), and, for every market that has at least one live signal, its live mid price and its last hour of one-minute candles, each keyed by market. A market whose price or candles cannot be read SHALL be omitted from that map without failing the request. `GET /api/signals/{id}` SHALL return the signal with its outcome, its copies (copier, size, fill price, transaction hash, time), the live mid price, and the last 200 one-minute candles of its market for charting.
 
 #### Scenario: Feed order and counts
 - **GIVEN** signals A (older, copied twice) and B (newer, never copied)
 - **WHEN** `GET /api/signals` is called
 - **THEN** B comes first, A shows `copyCount: 2`, and the author summary of A's author counts 1 idea and 2 copies
+
+#### Scenario: Feed carries outcomes
+- **GIVEN** one idea that hit its take profit and one still open
+- **WHEN** `GET /api/signals` is called
+- **THEN** the first carries `outcome: "tp"` and the second `outcome: null`, and the author summary carries the settled and won counts
 
 #### Scenario: Feed carries live prices
 - **GIVEN** live signals on BTC/USD and ETH/USD and an expired one on AMZN/USD
@@ -97,6 +102,57 @@ The system SHALL store every posted signal and every copy in a SQL database iden
 - **GIVEN** the account has no play money
 - **WHEN** a copy is requested
 - **THEN** the response is 422 with the plain-language reason and nothing is recorded
+
+### Requirement: Ideas are settled from the price history
+The system SHALL decide the outcome of every posted idea from the market's own candles between the moment it was posted and the moment it is judged, and SHALL store that outcome once. An idea SHALL be marked `tp` when the market reached its take-profit level (for an Up idea, a candle high at or above it; for a Down idea, a candle low at or below it), `sl` when it reached its stop-loss level (mirrored), and `expired` when its hold duration ended without either. When one candle reached both levels the system SHALL record `sl`, because the order of the two moves inside a candle is unknown and the conservative reading is the one that does not claim a win. An idea already carrying an outcome SHALL never be recomputed. Settlement SHALL NOT read fills or positions, so an idea nobody copied is judged by the same rule as one copied ten times.
+
+#### Scenario: The price reaches the take profit
+- **GIVEN** a live Up idea on BTC/USD with entry $80,000 and take profit $82,400
+- **WHEN** a candle since it was posted has a high of $82,500 and the feed is loaded
+- **THEN** the idea is stored with outcome `tp` and every screen shows it as "hit the take profit"
+
+#### Scenario: The price reaches the stop loss
+- **GIVEN** a live Down idea whose stop loss is above the entry
+- **WHEN** a candle since it was posted has a high at or above that stop
+- **THEN** the idea is stored with outcome `sl`
+
+#### Scenario: The hold ends with neither level reached
+- **GIVEN** an idea whose hold duration has passed and whose price stayed between the two levels
+- **WHEN** the feed is loaded
+- **THEN** the idea is stored with outcome `expired`
+
+#### Scenario: One candle reached both levels
+- **GIVEN** an idea and a candle whose high is above the take profit and whose low is below the stop loss
+- **WHEN** the idea is settled
+- **THEN** the outcome is `sl`, never `tp`
+
+#### Scenario: A settled idea is never re-judged
+- **GIVEN** an idea already marked `tp`
+- **WHEN** the price later falls through its stop loss and the feed is loaded again
+- **THEN** the stored outcome is still `tp` and no further candle read is made for it
+
+#### Scenario: Candles unavailable
+- **GIVEN** the exchange cannot return candles for an idea's market
+- **WHEN** the feed is loaded
+- **THEN** the response is still 200 with every idea, those ideas keep no outcome, the failure is logged server-side, and no error is shown to the user
+
+#### Scenario: A settled idea cannot be copied
+- **GIVEN** an idea marked `tp`, `sl` or `expired`
+- **WHEN** its detail is opened
+- **THEN** the copy button is disabled and reads how the idea went, and `POST /api/signals/{id}/copy` refuses it
+
+### Requirement: An author's record is visible, not just their volume
+The per-author summary SHALL include, besides ideas posted and copies received, how many of that author's ideas have been settled and how many of those hit the take profit, and the interface SHALL show that record next to the author's name wherever the summary is shown. An author with no settled ideas SHALL show only ideas and copies, never a rate computed from nothing.
+
+#### Scenario: An author with a record
+- **GIVEN** Ana has posted 3 ideas, 2 of them settled and 1 of those a take profit
+- **WHEN** the feed is loaded
+- **THEN** her summary reads "3 ideas · N copies · 1 of 2 worked"
+
+#### Scenario: An author with nothing settled yet
+- **GIVEN** Ben has posted 1 idea, still live
+- **WHEN** the feed is loaded
+- **THEN** his summary reads "1 idea · 0 copies" with no hit rate
 
 ### Requirement: The feed shows ideas as cards with one Copy action
 The home screen SHALL list signals as cards that a first-time visitor can read without tapping: the author's initial and name with "12m ago" and the author's summary, a headline that states the direction in words and colour ("BTC goes up ↑" in the up colour, "goes down ↓" in the down colour), a chart of the coin's own price — the same chart component as the detail and the Trade screen — with the idea drawn over it as price lines for Entry (yellow), Take profit (green) and Stop loss (red), always inside the chart's range, the live price labelled on the price axis, a compact toolbar (chart type, range 1h · 4h · 1d · 1w, zoom − / + / reset) whose longer ranges load more history on demand, and one plain sentence about where the price is now, the TP and SL percentages, "copied N×", whether the idea is still live or expired, and a yellow button "See it on the chart" that opens the detail. When the coin's candles are unavailable the card SHALL instead draw a strip — Stop loss at one end, Entry between, Take profit at the other end, each with its price — with the same marker and sentence; when the live price is unavailable the card SHALL still draw the three levels and say the price could not be read. A card SHALL never fail to render because a fetch failed. It SHALL offer a "Post an idea" action that opens a bottom sheet form with market, Up/Down, TP %, SL %, hold hours, size, optional note and the author's name, showing the live entry price read-only and the TP/SL previews in dollars. The feed SHALL have an inviting empty state.
