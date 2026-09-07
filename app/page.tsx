@@ -1,23 +1,11 @@
 import { Feed } from "@/components/Feed";
 import { listMarkets } from "@/lib/decibel";
 import type { Market, SignalList } from "@/lib/schemas";
-import { isExpired, signalsRepo } from "@/lib/signals";
+import { loadFeed } from "@/lib/signals";
 
 export const dynamic = "force-dynamic";
 
-/** Reads the feed straight from the database (not a component, so it may read the clock). */
-async function loadFeed(): Promise<SignalList> {
-  const repo = signalsRepo();
-  const now = Date.now();
-  const [signals, authors] = await Promise.all([repo.listSignals(), repo.authorStats()]);
-  return {
-    signals: signals.map((s) => ({ ...s, expired: isExpired(s, now) })),
-    authors,
-    updatedAt: now,
-  };
-}
-
-const EMPTY_FEED: SignalList = { signals: [], authors: [], updatedAt: 0 };
+const EMPTY_FEED: SignalList = { signals: [], authors: [], prices: {}, candles: {}, updatedAt: 0 };
 
 /** Home = the ideas feed. First paint comes from the server; the client polls after that. */
 export default async function Home() {

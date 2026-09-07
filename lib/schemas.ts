@@ -179,6 +179,10 @@ export type SignalView = Signal & { expired: boolean };
 export type SignalList = {
   signals: SignalView[];
   authors: AuthorStats[];
+  /** Live mid per market that has a live idea; a market that could not be quoted is absent. */
+  prices: Record<string, number>;
+  /** Last hour of one-minute candles per market with a live idea; absent when they could not be read. */
+  candles: Record<string, Candle[]>;
   updatedAt: number;
 };
 

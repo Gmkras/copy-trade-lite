@@ -2,21 +2,13 @@ import { apiHandler } from "@/lib/api";
 import { assertDemoAccess } from "@/lib/auth";
 import { assertTradableSize, getPrice } from "@/lib/decibel";
 import { SignalInput, type SignalList, type SignalView } from "@/lib/schemas";
-import { isExpired, signalsRepo, tpSlPrices } from "@/lib/signals";
+import { loadFeed, signalsRepo, tpSlPrices } from "@/lib/signals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** GET /api/signals — newest first, with copy counts and per-author stats. */
-export const GET = apiHandler<SignalList>({
-  run: async () => {
-    const repo = signalsRepo();
-    const now = Date.now();
-    const [rows, authors] = await Promise.all([repo.listSignals(), repo.authorStats()]);
-    const signals: SignalView[] = rows.map((s) => ({ ...s, expired: isExpired(s, now) }));
-    return { signals, authors, updatedAt: now };
-  },
-});
+/** GET /api/signals — newest first, with copy counts, per-author stats and live prices. */
+export const GET = apiHandler<SignalList>({ run: () => loadFeed() });
 
 /**
  * POST /api/signals — { author, market, side, tpPct, slPct, holdHours, size, note? }

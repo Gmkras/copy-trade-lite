@@ -8,7 +8,7 @@ import { PriceChart, type ChartLine, type ChartMarker } from "@/components/Price
 import { usePoll } from "@/hooks/usePoll";
 import { amount, money, timeAgo } from "@/lib/format";
 import type { SignalCopy, SignalDetail as SignalDetailData, SignalView } from "@/lib/schemas";
-import { describe, headline, timeLeftLabel } from "@/lib/signals/math";
+import { describe, groupCopyMarkers, headline, timeLeftLabel } from "@/lib/signals/math";
 
 type SignalDetailProps = {
   initialSignal: SignalView;
@@ -35,10 +35,8 @@ export function SignalDetail({ initialSignal, initialCopies }: SignalDetailProps
     ],
     [signal.entryPrice, signal.tpPrice, signal.slPrice],
   );
-  const markers = useMemo<ChartMarker[]>(
-    () => copies.map((c) => ({ time: c.createdAt, label: `${c.copier} copied` })),
-    [copies],
-  );
+  // One marker per minute, so simultaneous copies never overlap on the chart.
+  const markers = useMemo<ChartMarker[]>(() => groupCopyMarkers(copies), [copies]);
 
   return (
     <div className="flex flex-col gap-5">

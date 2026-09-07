@@ -7,4 +7,5 @@ import "server-only";
  */
 export { createDb, ensureSchema, getDb } from "./db";
 export { createRepo, signalsRepo, type NewCopy, type NewSignal, type SignalsRepo } from "./repo";
-export { describe, headline, holdLabel, isExpired, sizeLabel, timeLeftLabel, tpSlPrices } from "./math";
+export { loadFeed } from "./feed";
+export { describe, groupCopyMarkers, headline, holdLabel, ideaProgress, isExpired, progressSentence, sizeLabel, timeLeftLabel, tpSlPrices } from "./math";

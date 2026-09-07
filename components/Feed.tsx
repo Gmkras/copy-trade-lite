@@ -51,7 +51,16 @@ export function Feed({ initial, markets, authorName = "You", loadError = null }:
           <p className="mt-1 text-sm text-muted">Say where you think a coin goes; anyone can copy it with one tap.</p>
         </div>
       ) : (
-        data.signals.map((signal) => <SignalCard key={signal.id} signal={signal} stats={statsByAuthor.get(signal.author)} now={data.updatedAt} />)
+        data.signals.map((signal) => (
+          <SignalCard
+            key={signal.id}
+            signal={signal}
+            stats={statsByAuthor.get(signal.author)}
+            now={data.updatedAt}
+            livePrice={data.prices[signal.market] ?? null}
+            candles={data.candles[signal.market] ?? []}
+          />
+        ))
       )}
 
       <PostIdeaSheet

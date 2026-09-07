@@ -8,12 +8,12 @@ A dead-simple trading app on **Decibel (Aptos testnet)** that a smart 12-year-ol
 
 **<https://copy-trade-lite-gilt.vercel.app>** — open it on your phone or in a 375 px viewport.
 
-- **Browsing is open:** the ideas feed, every idea on its chart, the account card and the live prices need nothing. **Tap "Copy" on any card to open that idea on its chart** (entry, take-profit and stop-loss lines over live candles) — that needs no code; only the final "Copy this trade" button does.
+- **Browsing is open:** the ideas feed, every idea on its chart, the account card and the live prices need nothing. **Every card in the feed already shows its coin's candles with the Entry, Take profit and Stop loss lines and where the price is now**; "See it on the chart" opens the full-size chart with the copies. None of that needs a code; only the final "Copy this trade" button does.
 - **Trading needs the demo code** included in the submission email. The first time you tap the yellow button the app asks for it, remembers it in your browser, and never asks again. Without the code every write route answers `401` and nothing is signed.
 - Everything is **play money on Aptos testnet**; the orders it places are real testnet transactions from one shared testnet account.
 - The first request after a quiet period can take a few seconds (serverless cold start); after that prices refresh every 5 s and the feed every 10 s.
 
-The demo path is the same as [step 7 below](#run-it-locally): Trade → Buy → see the position → Feed → Post an idea → Copy it.
+The demo path is the same as [step 7 below](#run-it-locally): Trade → Buy → see the position → Feed → Post an idea → See it on the chart → Copy it.
 
 ## What works today
 
@@ -25,7 +25,7 @@ The demo path is the same as [step 7 below](#run-it-locally): Trade → Buy → 
 | MUST 3 | Kid-friendly trade screen: coin, Up/Down, how much, one button | ✅ Done (`trade-screen`) — `/trade` |
 | MUST 4 | Live account: equity, positions + PnL, open orders, fills (5 s polling, honest staleness) | ✅ Done (`trade-screen`) — `/trade` |
 | SHOULD 5 | Signal authoring: entry = live price, TP %, SL %, hold duration | ✅ Done (`copy-trade-signals`) — "Post an idea" on `/` |
-| SHOULD 6 | Signal on a chart with entry / take-profit / stop-loss lines | ✅ Done (`copy-trade-signals`) — `/signals/[id]` |
+| SHOULD 6 | Signal on a chart with entry / take-profit / stop-loss lines | ✅ Done (`copy-trade-signals`, `signal-visible-in-feed`) — every feed card draws its coin's candles with the three lines and the live price; `/signals/[id]` is the full-size chart with the copies |
 | SHOULD 7 | One-click copy from the copier's own account, builder code attached | ✅ Done (`copy-trade-signals`) — "Copy this trade" |
 | SHOULD 8 | Persisted signal history with per-author track record | ✅ Done (`copy-trade-signals`) — libSQL: a local file, or Turso when deployed |
 | STRETCH | Mobile-friendly layout | ✅ Done — designed at 375 px first, verified in a real browser |
@@ -35,8 +35,9 @@ The demo path is the same as [step 7 below](#run-it-locally): Trade → Buy → 
 Proof on the Aptos testnet explorer: first order from the script `0x5f433998292cf8350bbbb92e52fd334c70e4c92c98132b90caf6f73291f86875`, builder-fee approval `0x0c237551c7a68fad58c6999cc0f883fc78bce6d947cf845f384d34fa5e198f24`, order placed from the Trade screen `0x9e3276151dae78bb1a41e9dd7ae16148a42f90e9bb467df165dd43e51b9cf7af`, **signal copied with one tap** `0x54c0e82a700bec0d4372b0ed6a589c10732f988b5bb306e02abac5acc924dff3`. From the **deployed** app: order `0xf2bcbd0dcdda8466a7abfe501e48f3a41abc58f0685967e89fad7e2a9f49d027`, copy `0x9503723e776d545f5a66b3c24dafb44c5fb9bcffe7c427396c4159ee4232909b`.
 
 <p align="center">
+  <img src="docs/feed-charts.png" width="300" alt="The ideas feed at 375 px: each card shows the author, a headline such as BTC goes up, the coin's one-minute candles with the Entry, Take profit and Stop loss lines, a sentence about where the price is now, and a yellow See it on the chart button" />
   <img src="docs/signal-chart.png" width="300" alt="An idea on its chart on the deployed app: one-minute BTC candles with the Entry line in yellow, Take profit in green and Stop loss in red, the live price, and the Copy this trade button below" />
-  <br /><sub>SHOULD 6 on the deployed app: the idea drawn on live candles with its three lines, one tap from the feed.</sub>
+  <br /><sub>SHOULD 6: every card in the feed draws its coin's candles with the idea's three lines (left); "See it on the chart" opens the full-size chart with the copies and the one-tap copy (right, on the deployed app).</sub>
 </p>
 
 > **Play names, one account.** Authors and copiers are display names typed in the form; every order is signed with the single testnet key in `.env`. There is no login — that is out of scope for this take-home and is called out under [Safety](#safety).
@@ -151,8 +152,8 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
    1. **Trade** tab → BTC is selected → tap **Up ↑** → tap the **0.00002** chip. The yellow button reads "Buy 0.00002 BTC ≈ $1.60".
    2. Tap it once → "Sending your order…" → green toast **See it on the explorer** (testnet transaction, status Success) → scroll to **Your account**: Equity, Available, PnL and the position with PnL in $ and %.
    3. **Feed** tab → **Post an idea**: your name, BTC, **Up**, take profit 3 %, stop loss 2 %, hold 4 hours. The entry is the live price, read on the server; the dollar previews follow what you type. Tap **Post this idea**.
-   4. The new card is first in the feed: "went Up on BTC · just now · live · 4h left · copied 0×". Tap the yellow **Copy**.
-   5. The idea on a chart: candles with **Entry** (yellow), **Take profit** (green) and **Stop loss** (red) lines. Type a different name and tap **Copy this trade** once → toast with the explorer link → a marker appears on the chart and the count becomes "Copied 1×".
+   4. The new card is first in the feed: "BTC goes up ↑", the BTC candles of the last hour with the **Entry**, **Take profit** and **Stop loss** lines, "now $… · right at the entry", "live · 4h left · copied 0×". Tap the yellow **See it on the chart**.
+   5. The full-size chart: the same three lines, the live price, and the copies. Type a different name and tap **Copy this trade** once → toast with the explorer link → a marker appears on the chart and the count becomes "Copied 1×".
    6. Back on **Feed**, the card says "copied 1×" and the author line shows "1 idea · 1 copy". On **Trade**, the position grew.
 
    The first request after `pnpm dev` compiles the routes and can take ~8 s; after that the price and account refresh every 5 s and the feed every 10 s.
@@ -203,8 +204,9 @@ The app runs on any Node host. It was deployed on Vercel with a Turso database, 
 - [ ] Empty database → the feed says "No ideas yet — post the first one" with the Post an idea action visible.
 - [ ] In **Post an idea**, change take profit from 3 to 5 → the "out at $…" preview updates without submitting. Entry is read-only.
 - [ ] Enter take profit `0` and post → error toast "Take profit must be more than 0%", the sheet stays open with your inputs.
-- [ ] Post a valid idea → toast, sheet closes, card first in the feed with "live · Xh left".
-- [ ] Open the card → chart with three labeled lines at the entry, take-profit and stop-loss prices, plus the plain-language sentence.
+- [ ] Post a valid idea → toast, sheet closes, card first in the feed with "live · Xh left", its coin's candles with the three lines and a sentence such as "now $… · right at the entry"; pinch or scroll on the card's chart zooms it.
+- [ ] Two ideas on different coins → each card shows its own coin's candles and levels.
+- [ ] Tap **See it on the chart** → the full-size chart with three labeled lines at the entry, take-profit and stop-loss prices, plus the plain-language sentence; copies made within ten minutes of each other share one marker ("Ben, Cid copied").
 - [ ] Tap **Copy this trade** once → busy label → toast with an explorer link → marker on the chart, "Copied 1×", copier listed.
 - [ ] Tap it twice quickly → only one order is placed.
 - [ ] Restart `pnpm dev` → the ideas and copies are still there (the database at `DATABASE_URL`).
@@ -229,6 +231,7 @@ The app runs on any Node host. It was deployed on Vercel with a Turso database, 
 | `curl -X POST localhost:3000/api/signals -H "content-type: application/json" -d '{"author":"Ana","market":"BTC/USD","side":"up","tpPct":3,"slPct":2,"holdHours":4,"size":0.00002}'` | 200 with `entryPrice` from the live mid and `tpPrice ≈ entry × 1.03` |
 | … with `"entryPrice":1` added | 422 "Unexpected field: entryPrice." (the client can never set the entry) |
 | … with `"tpPct":0` / `"holdHours":1000` | 422 with the plain-language range |
+| `curl localhost:3000/api/signals` | `prices` and `candles` (about 60 one-minute candles) for every market that has a live idea; a market the exchange cannot quote is simply absent |
 | `curl localhost:3000/api/signals/nope` | 404 `NOT_FOUND` |
 | `curl -X POST localhost:3000/api/signals/<expired-id>/copy -d '{"copier":"Ben"}'` | 422 `SIGNAL_EXPIRED`, no order placed |
 
@@ -253,13 +256,14 @@ pnpm build       # production build; must succeed
 ```
 app/                    Next.js App Router: layout, feed (/), /trade, /signals/[id]
 app/api/                markets, price/[market], account, order, signals, signals/[id], signals/[id]/copy — every route goes through apiHandler
-components/             shell (BigButton, Card, Sheet, Toast, BottomNav), trading (CoinPills, SideToggle, SizePicker, TradeForm, AccountCard, TradeScreen), signals (Feed, SignalCard, PostIdeaSheet, SignalDetail, CopyPanel, PriceChart)
+components/             shell (BigButton, Card, Sheet, Toast, BottomNav), trading (CoinPills, SideToggle, SizePicker, TradeForm, AccountCard, TradeScreen), signals (Feed, SignalCard with the per-coin PriceChart, IdeaStrip fallback, PostIdeaSheet, SignalDetail, CopyPanel, PriceChart)
 hooks/usePoll.ts        polling with last-good-data + stale flag, fetch/post envelope helpers (tests)
 hooks/useDemoPasscode.ts  sends the stored demo code, asks for it on a 401 and retries (PasscodeSheet)
 lib/auth.ts             assertDemoAccess: constant-time header check, no-op when DEMO_PASSCODE is empty (tests)
 lib/signals/db.ts       libSQL client at DATABASE_URL (file locally, Turso deployed), schema created once per process
 lib/signals/repo.ts     parameterised statements, zod-parsed rows, copy counts and author stats (tests)
-lib/signals/math.ts     TP/SL prices, expiry, plain-language wording (tests)
+lib/signals/feed.ts     the one feed loader: signals, author stats, live prices and last-hour candles per market
+lib/signals/math.ts     TP/SL prices, expiry, plain-language wording, strip geometry, marker clustering (tests)
 lib/schemas.ts          zod OrderInput (.strict()) + shared response types (client-safe)
 lib/api.ts              apiHandler: guard before parsing, one envelope, 401/404/422/400 readable errors, safe 502 (tests)
 lib/format.ts           money, amount, pct, timeAgo (client-safe)
@@ -325,6 +329,7 @@ What the review actually caught — these are the changes I made to the generate
 - **Accessibility the draft ignored:** a closed bottom sheet still reachable by Tab (fixed with `inert`), toast timers left running after unmount, tap targets under 44 px, and a coin selector that forced 36 tab stops before the main button (fixed with the ARIA roving-tabindex pattern).
 - **Two honesty fixes.** A copy stores the *reference* price, not a confirmed fill, so the interface says "at about $…"; and a spec scenario used `DOGE/USD` as a market that "does not exist" — it does exist on testnet, so the scenario was corrected rather than left to pass by luck.
 - **A deploy that could not sign.** The first deployment refused every order with `FEE_BOUND`: the approval record `pnpm approve` writes was a gitignored local file, which a serverless host never has. The plan had not seen it because the local file was always there. The record moved into the database (design D7 of `deploy-demo`), and the agent's first reading of the result — "fills went up, so the order went through" — was wrong too: the extra fill was a local one. The deployed order was only counted as proof once the network log showed the `200` and the explorer link.
+- **A chart nobody found.** A reviewer's first comment was "I think you missed *visualise a signal on the chart*". The chart existed, one tap away — behind a card button labelled "Copy", which reads as "trade now" and, on the public URL, as "needs the code". The feed now shows every idea on its coin's own candles, and the button says where it goes. Two drafts of that card were thrown away the same hour: a level strip and a hand-drawn SVG line, both replaced by the real chart because a reviewer expects the chart, not a picture of one (`signal-visible-in-feed`, `design.md.old` and `.old2`).
 - **A gate that ran too late.** Task 2.2 said to call `assertDemoAccess` as the first statement of each write route; inside `apiHandler` that would have run *after* the body was parsed. The wrapper gained a `guard` that runs before anything is read, so a refused request never reaches the schema, the SDK or the database.
 
 Two decisions I overrode after seeing the result: the size range stays out of the request schema (so every rejection quotes the same allowed range, from one place in the domain), and a list may repeat its primary action once per card — the constitution now says so explicitly instead of the code quietly breaking the old wording.
@@ -333,7 +338,7 @@ Two decisions I overrode after seeing the result: the size range stays out of th
 
 Each feature is an OpenSpec change (`openspec/changes/<name>/`) with a proposal, a delta spec, a design and a task list; tasks are implemented one by one, each with its own verification and commit, then the change is reviewed against `specs/constitution.md` and archived. When a design decision changes during implementation, the previous artifact is kept next to it as `*.old`. The archive folder is the record of what was planned, what was built and what changed after review.
 
-Seven changes, in order: `bootstrap-app` → `decibel-testnet-connection` → `trade-screen` → `copy-trade-signals` → `polish-and-delivery` → `refresh-app-shell-spec` → `deploy-demo`. `specs/constitution.md` holds the rules every one of them was checked against, each written as something you can actually run.
+Eight changes, in order: `bootstrap-app` → `decibel-testnet-connection` → `trade-screen` → `copy-trade-signals` → `polish-and-delivery` → `refresh-app-shell-spec` → `deploy-demo` → `signal-visible-in-feed`. `specs/constitution.md` holds the rules every one of them was checked against, each written as something you can actually run.
 
 The safety review is in [`docs/SAFETY_REVIEW.md`](docs/SAFETY_REVIEW.md): every rule the brief grades, mapped to the file that enforces it and the check that was run, with the observed output.
 

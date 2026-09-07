@@ -61,6 +61,49 @@ export async function getCandles(marketName: string, minutes = 200): Promise<Can
     .sort((a, b) => a.t - b.t);
 }
 
+/**
+ * Live mids for several markets at once, for the feed. Markets that are
+ * unknown or fail to quote are left out (and logged), never fatal: a card
+ * without a price still draws its levels.
+ */
+export async function getPrices(marketNames: string[]): Promise<Record<string, number>> {
+  if (marketNames.length === 0) return {};
+  const d = getDecibel();
+  const known = new Set((await d.read.markets.getAll()).map((m) => m.market_name));
+  const wanted = marketNames.filter((name) => known.has(name));
+  const settled = await Promise.allSettled(
+    wanted.map(async (marketName) => {
+      const [row] = await d.read.marketPrices.getByName({ marketName });
+      return { marketName, mid: row?.mid_px };
+    }),
+  );
+  const prices: Record<string, number> = {};
+  settled.forEach((result, i) => {
+    if (result.status === "fulfilled" && Number.isFinite(result.value.mid) && (result.value.mid ?? 0) > 0) {
+      prices[result.value.marketName] = result.value.mid as number;
+    } else {
+      console.warn(`[feed] no live price for ${wanted[i]}:`, result.status === "rejected" ? result.reason : "empty quote");
+    }
+  });
+  return prices;
+}
+
+/**
+ * Recent one-minute candles for several markets, for the feed's mini charts.
+ * A market that fails is left out (and logged): its card falls back to the
+ * strip drawn from the idea alone.
+ */
+export async function getCandlesFor(marketNames: string[], minutes: number): Promise<Record<string, Candle[]>> {
+  const settled = await Promise.allSettled(marketNames.map((name) => getCandles(name, minutes)));
+  const candles: Record<string, Candle[]> = {};
+  settled.forEach((result, i) => {
+    const name = marketNames[i] as string;
+    if (result.status === "fulfilled" && result.value.length > 0) candles[name] = result.value;
+    else console.warn(`[feed] no candles for ${name}:`, result.status === "rejected" ? result.reason : "empty");
+  });
+  return candles;
+}
+
 /** Live mid/mark for one market by name. */
 export async function getPrice(marketName: string): Promise<Price> {
   const d = getDecibel();
