@@ -1,4 +1,5 @@
 import { apiHandler } from "@/lib/api";
+import { assertDemoAccess } from "@/lib/auth";
 import { assertTradableSize, getPrice } from "@/lib/decibel";
 import { SignalInput, type SignalList, type SignalView } from "@/lib/schemas";
 import { isExpired, signalsRepo, tpSlPrices } from "@/lib/signals";
@@ -25,6 +26,7 @@ export const GET = apiHandler<SignalList>({
  * by tpSlPrices) and the size goes through the same bounds as an order.
  */
 export const POST = apiHandler<SignalView, SignalInput>({
+  guard: assertDemoAccess,
   schema: SignalInput,
   run: async ({ body }) => {
     const price = await getPrice(body.market);

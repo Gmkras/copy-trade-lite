@@ -4,9 +4,11 @@ import { useMemo, useRef, useState } from "react";
 
 import { BigButton } from "@/components/BigButton";
 import { CoinPills } from "@/components/CoinPills";
+import { PasscodeSheet } from "@/components/PasscodeSheet";
 import { Sheet } from "@/components/Sheet";
 import { SideToggle } from "@/components/SideToggle";
 import { useToast } from "@/components/Toast";
+import { useDemoPasscode } from "@/hooks/useDemoPasscode";
 import { postEnvelope, usePoll } from "@/hooks/usePoll";
 import { amount, money } from "@/lib/format";
 import type { Market, OrderSide, Price, SignalView } from "@/lib/schemas";
@@ -25,6 +27,7 @@ const PRICE_POLL_MS = 5000;
 
 export function PostIdeaSheet({ open, onClose, markets, authorName, onPosted }: PostIdeaSheetProps) {
   const { show } = useToast();
+  const { run, prompt } = useDemoPasscode();
   const [author, setAuthor] = useState(authorName);
   const [marketName, setMarketName] = useState(markets[0]?.name ?? "BTC/USD");
   const [side, setSide] = useState<OrderSide>("up");
@@ -61,16 +64,22 @@ export function PostIdeaSheet({ open, onClose, markets, authorName, onPosted }: 
     inFlight.current = true;
     setPending(true);
     try {
-      const signal = await postEnvelope<SignalView>("/api/signals", {
-        author,
-        market: market.name,
-        side,
-        tpPct,
-        slPct,
-        holdHours,
-        size,
-        ...(note.trim() ? { note: note.trim() } : {}),
-      });
+      const signal = await run((passcode) =>
+        postEnvelope<SignalView>(
+          "/api/signals",
+          {
+            author,
+            market: market.name,
+            side,
+            tpPct,
+            slPct,
+            holdHours,
+            size,
+            ...(note.trim() ? { note: note.trim() } : {}),
+          },
+          passcode,
+        ),
+      );
       show(`Idea posted: ${signal.author} went ${side === "up" ? "Up" : "Down"} on ${signal.symbol}`, { variant: "success" });
       setNote("");
       onPosted(signal);
@@ -84,65 +93,68 @@ export function PostIdeaSheet({ open, onClose, markets, authorName, onPosted }: 
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="Post an idea">
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void submit();
-        }}
-      >
-        <Field label="Your name" hint="A play name — everyone trades from the same testnet account.">
-          <input
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            maxLength={40}
-            className="min-h-12 w-full rounded-card border border-line bg-bg px-4 text-text"
-          />
-        </Field>
-
-        <CoinPills markets={markets} selected={market?.name ?? ""} onSelect={selectMarket} />
-
-        <p className="font-display text-lg" aria-live="polite">
-          Entry = live price: 1 {symbol} ={" "}
-          {mid === null ? <span className="text-muted">{price.error ? "price unavailable" : "…"}</span> : `$${money(mid, digits)}`}
-        </p>
-
-        <SideToggle value={side} onChange={setSide} />
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Take profit %" hint={preview ? `out at $${money(preview.tpPrice, digits)}` : "above entry for Up"}>
-            <NumberInput value={tpPct} onChange={setTpPct} />
+    <>
+      <Sheet open={open} onClose={onClose} title="Post an idea">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
+          }}
+        >
+          <Field label="Your name" hint="A play name — everyone trades from the same testnet account.">
+            <input
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              maxLength={40}
+              className="min-h-12 w-full rounded-card border border-line bg-bg px-4 text-text"
+            />
           </Field>
-          <Field label="Stop loss %" hint={preview ? `out at $${money(preview.slPrice, digits)}` : "below entry for Up"}>
-            <NumberInput value={slPct} onChange={setSlPct} />
-          </Field>
-        </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Hold for (hours)" hint="1 to 720">
-            <NumberInput value={holdHours} onChange={setHoldHours} />
-          </Field>
-          <Field label={`How much (${symbol})`} hint={market ? `${amount(market.minSize)} to ${amount(market.maxOrderSize)}` : ""}>
-            <NumberInput value={size} onChange={setSize} />
-          </Field>
-        </div>
+          <CoinPills markets={markets} selected={market?.name ?? ""} onSelect={selectMarket} />
 
-        <Field label="Why? (optional)" hint="Up to 140 characters">
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            maxLength={140}
-            placeholder="BTC looks strong today"
-            className="min-h-12 w-full rounded-card border border-line bg-bg px-4 text-text placeholder:text-muted"
-          />
-        </Field>
+          <p className="font-display text-lg" aria-live="polite">
+            Entry = live price: 1 {symbol} ={" "}
+            {mid === null ? <span className="text-muted">{price.error ? "price unavailable" : "…"}</span> : `$${money(mid, digits)}`}
+          </p>
 
-        <BigButton type="submit" pending={pending} pendingLabel="Posting…" disabled={mid === null || !author.trim()}>
-          Post this idea
-        </BigButton>
-      </form>
-    </Sheet>
+          <SideToggle value={side} onChange={setSide} />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Take profit %" hint={preview ? `out at $${money(preview.tpPrice, digits)}` : "above entry for Up"}>
+              <NumberInput value={tpPct} onChange={setTpPct} />
+            </Field>
+            <Field label="Stop loss %" hint={preview ? `out at $${money(preview.slPrice, digits)}` : "below entry for Up"}>
+              <NumberInput value={slPct} onChange={setSlPct} />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Hold for (hours)" hint="1 to 720">
+              <NumberInput value={holdHours} onChange={setHoldHours} />
+            </Field>
+            <Field label={`How much (${symbol})`} hint={market ? `${amount(market.minSize)} to ${amount(market.maxOrderSize)}` : ""}>
+              <NumberInput value={size} onChange={setSize} />
+            </Field>
+          </div>
+
+          <Field label="Why? (optional)" hint="Up to 140 characters">
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={140}
+              placeholder="BTC looks strong today"
+              className="min-h-12 w-full rounded-card border border-line bg-bg px-4 text-text placeholder:text-muted"
+            />
+          </Field>
+
+          <BigButton type="submit" pending={pending} pendingLabel="Posting…" disabled={mid === null || !author.trim()}>
+            Post this idea
+          </BigButton>
+        </form>
+      </Sheet>
+      <PasscodeSheet {...prompt} />
+    </>
   );
 }
 

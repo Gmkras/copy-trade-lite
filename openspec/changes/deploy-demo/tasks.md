@@ -7,9 +7,9 @@
 
 ## 2. Demo passcode (≈45 min)
 
-- [ ] 2.1 Create `lib/auth.ts` with `UnauthorizedError` and `assertDemoAccess(request)` per design D4 (no-op when unset, constant-time compare otherwise); map `UnauthorizedError` → 401 in `lib/api.ts`. Add unit tests: unset passes, correct header passes, missing and wrong header throw, and the error message never contains the expected value. Verify: `pnpm test` green.
-- [ ] 2.2 Call `assertDemoAccess` as the first statement of `POST /api/order`, `POST /api/signals` and `POST /api/signals/[id]/copy`. Verify with `DEMO_PASSCODE` set: each write without the header returns 401 and places no order; with the header, all three work; every GET keeps working without a header. With the variable unset, all three work with no header.
-- [ ] 2.3 Create `hooks/useDemoPasscode.ts` (localStorage in try/catch) and a prompt in the UI: on a 401 the user is asked for the code, it is stored and the action retried once. Wire it into `TradeForm`, `PostIdeaSheet` and `CopyPanel`. Verify with agent-browser at 375 px against a dev server with `DEMO_PASSCODE` set: the first order asks for the code, a wrong code says so and lets you retry, the right one completes the order and a second action does not ask again.
+- [x] 2.1 Create `lib/auth.ts` with `UnauthorizedError` and `assertDemoAccess(request)` per design D4 (no-op when unset, constant-time compare otherwise); map `UnauthorizedError` → 401 in `lib/api.ts`. Add unit tests: unset passes, correct header passes, missing and wrong header throw, and the error message never contains the expected value. Verify: `pnpm test` green.
+- [x] 2.2 Call `assertDemoAccess` as the first statement of `POST /api/order`, `POST /api/signals` and `POST /api/signals/[id]/copy`. Verify with `DEMO_PASSCODE` set: each write without the header returns 401 and places no order; with the header, all three work; every GET keeps working without a header. With the variable unset, all three work with no header.
+- [x] 2.3 Create `hooks/useDemoPasscode.ts` (localStorage in try/catch) and a prompt in the UI: on a 401 the user is asked for the code, it is stored and the action retried once. Wire it into `TradeForm`, `PostIdeaSheet` and `CopyPanel`. Verify with agent-browser at 375 px against a dev server with `DEMO_PASSCODE` set: the first order asks for the code, a wrong code says so and lets you retry, the right one completes the order and a second action does not ask again.
 
 ## 3. Deploy (≈45 min)
 

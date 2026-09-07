@@ -2,16 +2,18 @@ import "server-only";
 
 import { ZodError, type ZodType, type ZodTypeDef } from "zod";
 
+import { UnauthorizedError } from "@/lib/auth";
 import { TradeError } from "@/lib/decibel";
 import type { ApiFail, ApiOk } from "@/lib/schemas";
 
 /**
  * Route Handler wrapper: one envelope, readable errors, nothing leaks.
  *
- *  - ZodError        → 422 INVALID_INPUT (first issue, plain language)
- *  - TradeError      → 422 <code> with its message
- *  - malformed JSON  → 400 BAD_JSON
- *  - anything else   → 502 UPSTREAM with a safe message; the cause is logged server-side
+ *  - ZodError          → 422 INVALID_INPUT (first issue, plain language)
+ *  - TradeError        → 422 <code> with its message
+ *  - UnauthorizedError → 401 DEMO_CODE_REQUIRED
+ *  - malformed JSON    → 400 BAD_JSON
+ *  - anything else     → 502 UPSTREAM with a safe message; the cause is logged server-side
  */
 
 /** Thrown by handlers when the requested resource does not exist → 404. */
@@ -33,6 +35,12 @@ export type HandlerArgs<TBody> = {
 };
 
 export type ApiHandlerOptions<TBody, TOut> = {
+  /**
+   * Runs before anything else — before the body is read. This is where
+   * `assertDemoAccess` goes, so a refused request never reaches the schema,
+   * the SDK or the database.
+   */
+  guard?: (request: Request) => void;
   /** When set, the JSON body is parsed with it before `run` is called. Input may differ from output (coercions). */
   schema?: ZodType<TBody, ZodTypeDef, unknown>;
   run: (args: HandlerArgs<TBody>) => Promise<TOut>;
@@ -41,6 +49,7 @@ export type ApiHandlerOptions<TBody, TOut> = {
 export function apiHandler<TOut, TBody = undefined>(options: ApiHandlerOptions<TBody, TOut>) {
   return async (request: Request, context?: RouteContext): Promise<Response> => {
     try {
+      options.guard?.(request);
       const params = (await context?.params) ?? {};
       let body = undefined as TBody;
       if (options.schema) {
@@ -79,6 +88,9 @@ export function errorResponse(error: unknown): Response {
   }
   if (error instanceof NotFoundError) {
     return fail(404, error.code, error.message);
+  }
+  if (error instanceof UnauthorizedError) {
+    return fail(401, error.code, error.message);
   }
   // Unknown: never echo internals (URLs, keys, stacks) to the client.
   console.error("[api] unexpected error:", error);

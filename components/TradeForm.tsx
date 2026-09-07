@@ -4,9 +4,11 @@ import { useMemo, useRef, useState } from "react";
 
 import { BigButton } from "@/components/BigButton";
 import { CoinPills } from "@/components/CoinPills";
+import { PasscodeSheet } from "@/components/PasscodeSheet";
 import { SideToggle } from "@/components/SideToggle";
 import { SizePicker, sizeChips } from "@/components/SizePicker";
 import { useToast } from "@/components/Toast";
+import { useDemoPasscode } from "@/hooks/useDemoPasscode";
 import { postEnvelope, usePoll } from "@/hooks/usePoll";
 import { amount, money } from "@/lib/format";
 import type { Market, OrderReceipt, OrderSide, Price } from "@/lib/schemas";
@@ -21,6 +23,7 @@ const PRICE_POLL_MS = 5000;
 
 export function TradeForm({ markets, onOrderPlaced }: TradeFormProps) {
   const { show } = useToast();
+  const { run, prompt } = useDemoPasscode();
   const [marketName, setMarketName] = useState(markets[0]?.name ?? "BTC/USD");
   const [side, setSide] = useState<OrderSide>("up");
   const market = markets.find((m) => m.name === marketName) ?? markets[0];
@@ -57,7 +60,7 @@ export function TradeForm({ markets, onOrderPlaced }: TradeFormProps) {
     inFlight.current = true;
     setPending(true);
     try {
-      const receipt = await fetchOrder({ market: market.name, side, size });
+      const receipt = await run((passcode) => fetchOrder({ market: market.name, side, size }, passcode));
       show(`Order sent: ${verb.toLowerCase()} ${amount(receipt.size)} ${market.symbol} at about $${money(receipt.referencePrice)}`, {
         variant: "success",
         link: { href: receipt.explorerUrl, label: "See it on the explorer" },
@@ -76,32 +79,35 @@ export function TradeForm({ markets, onOrderPlaced }: TradeFormProps) {
   }
 
   return (
-    <form
-      className="flex flex-col gap-5"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void submit();
-      }}
-    >
-      <CoinPills markets={markets} selected={market.name} onSelect={selectMarket} />
+    <>
+      <form
+        className="flex flex-col gap-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+      >
+        <CoinPills markets={markets} selected={market.name} onSelect={selectMarket} />
 
-      <p className="font-display text-lg" aria-live="polite">
-        1 {market.symbol} = {mid === null ? <span className="text-muted">{price.error ? "price unavailable" : "…"}</span> : `$${money(mid, market.priceStep >= 1 ? 0 : 2)}`}
-        {price.stale ? <span className="ml-2 rounded-full border border-line px-2 text-xs text-muted">couldn&apos;t refresh</span> : null}
-      </p>
+        <p className="font-display text-lg" aria-live="polite">
+          1 {market.symbol} = {mid === null ? <span className="text-muted">{price.error ? "price unavailable" : "…"}</span> : `$${money(mid, market.priceStep >= 1 ? 0 : 2)}`}
+          {price.stale ? <span className="ml-2 rounded-full border border-line px-2 text-xs text-muted">couldn&apos;t refresh</span> : null}
+        </p>
 
-      <SideToggle value={side} onChange={setSide} />
+        <SideToggle value={side} onChange={setSide} />
 
-      <SizePicker market={market} value={sizeText} onChange={setSizeText} valid={sizeValid} />
+        <SizePicker market={market} value={sizeText} onChange={setSizeText} valid={sizeValid} />
 
-      <BigButton type="submit" disabled={!canSubmit} pending={pending} pendingLabel="Sending your order…">
-        {label}
-      </BigButton>
-      <p className="text-center text-sm text-muted">Play money on Aptos testnet. Nothing here is real.</p>
-    </form>
+        <BigButton type="submit" disabled={!canSubmit} pending={pending} pendingLabel="Sending your order…">
+          {label}
+        </BigButton>
+        <p className="text-center text-sm text-muted">Play money on Aptos testnet. Nothing here is real.</p>
+      </form>
+      <PasscodeSheet {...prompt} />
+    </>
   );
 }
 
-function fetchOrder(body: { market: string; side: OrderSide; size: number }): Promise<OrderReceipt> {
-  return postEnvelope<OrderReceipt>("/api/order", body);
+function fetchOrder(body: { market: string; side: OrderSide; size: number }, passcode: string | null): Promise<OrderReceipt> {
+  return postEnvelope<OrderReceipt>("/api/order", body, passcode);
 }

@@ -9,6 +9,7 @@ vi.mock("@/lib/decibel", async () => {
   return { TradeError: errors.TradeError };
 });
 
+import { UnauthorizedError } from "./auth";
 import { TradeError } from "./decibel/errors";
 import { apiHandler, NotFoundError } from "./api";
 
@@ -71,6 +72,19 @@ describe("apiHandler", () => {
     const res = await handler(new Request("http://localhost/api/signals/nope"));
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ ok: false, code: "NOT_FOUND", message: "That idea was not found." });
+  });
+
+  it("maps UnauthorizedError to 401", async () => {
+    const handler = apiHandler({
+      run: async () => {
+        throw new UnauthorizedError();
+      },
+    });
+    const res = await handler(post({ size: 1 }));
+    const json = (await res.json()) as { ok: boolean; code: string; message: string };
+    expect(res.status).toBe(401);
+    expect(json.code).toBe("DEMO_CODE_REQUIRED");
+    expect(json.message).toMatch(/code/i);
   });
 
   it("hides unknown errors behind a safe 502 and logs the cause", async () => {

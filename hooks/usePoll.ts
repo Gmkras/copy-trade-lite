@@ -4,6 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ApiEnvelope } from "@/lib/schemas";
 
+/** Error carrying the envelope's `code`, so callers can react to a specific one. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly code: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export type PollState<T> = {
   data: T | null;
   /** Last error message (plain language from the API envelope). */
@@ -41,16 +52,22 @@ export async function fetchEnvelope<T>(url: string, signal?: AbortSignal): Promi
   } catch {
     envelope = null;
   }
-  if (!envelope) throw new Error(`Unexpected response (${response.status}).`);
-  if (!envelope.ok) throw new Error(envelope.message);
+  if (!envelope) throw new ApiError(`Unexpected response (${response.status}).`, "BAD_RESPONSE");
+  if (!envelope.ok) throw new ApiError(envelope.message, envelope.code);
   return envelope.data;
 }
 
-/** POSTs JSON and unwraps the envelope the same way as `fetchEnvelope`. */
-export async function postEnvelope<T>(url: string, body: unknown): Promise<T> {
+/**
+ * POSTs JSON and unwraps the envelope the same way as `fetchEnvelope`.
+ * `passcode`, when present, is sent as the demo header the write routes check.
+ */
+export async function postEnvelope<T>(url: string, body: unknown, passcode?: string | null): Promise<T> {
   const response = await fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(passcode ? { "x-demo-passcode": passcode } : {}),
+    },
     body: JSON.stringify(body),
   });
   let envelope: ApiEnvelope<T> | null = null;
@@ -59,8 +76,8 @@ export async function postEnvelope<T>(url: string, body: unknown): Promise<T> {
   } catch {
     envelope = null;
   }
-  if (!envelope) throw new Error(`Unexpected response (${response.status}).`);
-  if (!envelope.ok) throw new Error(envelope.message);
+  if (!envelope) throw new ApiError(`Unexpected response (${response.status}).`, "BAD_RESPONSE");
+  if (!envelope.ok) throw new ApiError(envelope.message, envelope.code);
   return envelope.data;
 }
 

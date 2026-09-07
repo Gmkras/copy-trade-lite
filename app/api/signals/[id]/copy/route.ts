@@ -1,4 +1,5 @@
 import { apiHandler, NotFoundError } from "@/lib/api";
+import { assertDemoAccess } from "@/lib/auth";
 import { TradeError, errorText, placeMarketOrder, type MarketOrderResult } from "@/lib/decibel";
 import { CopyInput, type CopyReceipt } from "@/lib/schemas";
 import { isExpired, signalsRepo } from "@/lib/signals";
@@ -17,6 +18,7 @@ const EXPLORER_TX = "https://explorer.aptoslabs.com/txn";
  * trigger prices, the order is placed without them and the receipt says so.
  */
 export const POST = apiHandler<CopyReceipt, CopyInput>({
+  guard: assertDemoAccess,
   schema: CopyInput,
   run: async ({ body, params }) => {
     const repo = signalsRepo();

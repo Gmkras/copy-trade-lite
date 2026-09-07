@@ -1,4 +1,5 @@
 import { apiHandler } from "@/lib/api";
+import { assertDemoAccess } from "@/lib/auth";
 import { placeMarketOrder } from "@/lib/decibel";
 import { OrderInput, type OrderReceipt } from "@/lib/schemas";
 
@@ -16,6 +17,7 @@ const EXPLORER_TX = "https://explorer.aptoslabs.com/txn";
  * bound before signing.
  */
 export const POST = apiHandler<OrderReceipt, OrderInput>({
+  guard: assertDemoAccess,
   schema: OrderInput,
   run: async ({ body }) => {
     const result = await placeMarketOrder({
