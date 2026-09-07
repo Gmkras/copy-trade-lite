@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { Card } from "@/components/Card";
 import { CopyPanel } from "@/components/CopyPanel";
-import { PriceChart, type ChartLine, type ChartMarker } from "@/components/PriceChart";
-import { usePoll } from "@/hooks/usePoll";
+import { MarketChart, type ChartLine, type ChartMarker } from "@/components/MarketChart";
+import { useToast } from "@/components/Toast";
+import { fetchEnvelope, usePoll } from "@/hooks/usePoll";
 import { amount, money, timeAgo } from "@/lib/format";
-import type { SignalCopy, SignalDetail as SignalDetailData, SignalView } from "@/lib/schemas";
+import type { Candle, CandleRange, CandlesResponse, SignalCopy, SignalDetail as SignalDetailData, SignalView } from "@/lib/schemas";
 import { describe, groupCopyMarkers, headline, timeLeftLabel } from "@/lib/signals/math";
 
 type SignalDetailProps = {
@@ -17,15 +18,40 @@ type SignalDetailProps = {
 
 const DETAIL_POLL_MS = 10_000;
 const LINE_COLORS = { entry: "#f5c400", tp: "#22c55e", sl: "#ef4444" };
+/** The detail's own poll carries four hours of one-minute candles. */
+const POLLED_RANGE: CandleRange = "4h";
 
 export function SignalDetail({ initialSignal, initialCopies }: SignalDetailProps) {
+  const { show } = useToast();
   const detail = usePoll<SignalDetailData>(`/api/signals/${initialSignal.id}`, DETAIL_POLL_MS);
   const signal = detail.data?.signal ?? initialSignal;
   const copies = detail.data?.copies ?? initialCopies;
-  const candles = detail.data?.candles ?? [];
   const price = detail.data?.price ?? null;
   const now = detail.updatedAt ?? signal.createdAt;
   const digits = signal.entryPrice >= 100 ? 0 : 2;
+
+  // Other ranges are fetched once on request; the polled 4h data stays the default.
+  const [range, setRange] = useState<CandleRange>(POLLED_RANGE);
+  const [override, setOverride] = useState<{ range: CandleRange; candles: Candle[] } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function changeRange(next: CandleRange) {
+    setRange(next);
+    if (next === POLLED_RANGE || override?.range === next) return;
+    setLoading(true);
+    try {
+      const response = await fetchEnvelope<CandlesResponse>(`/api/candles/${encodeURIComponent(signal.market)}?range=${next}`);
+      setOverride({ range: next, candles: response.candles });
+    } catch (error) {
+      show(error instanceof Error ? error.message : "Couldn't load more history.", { variant: "error" });
+      setRange(POLLED_RANGE);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const polled = detail.data?.candles ?? [];
+  const candles = range === POLLED_RANGE ? polled : override?.range === range ? override.candles : polled;
 
   const lines = useMemo<ChartLine[]>(
     () => [
@@ -35,7 +61,7 @@ export function SignalDetail({ initialSignal, initialCopies }: SignalDetailProps
     ],
     [signal.entryPrice, signal.tpPrice, signal.slPrice],
   );
-  // One marker per minute, so simultaneous copies never overlap on the chart.
+  // One marker per cluster of copies close in time, so labels never overlap.
   const markers = useMemo<ChartMarker[]>(() => groupCopyMarkers(copies), [copies]);
 
   return (
@@ -53,7 +79,16 @@ export function SignalDetail({ initialSignal, initialCopies }: SignalDetailProps
         {detail.data === null && detail.loading ? (
           <div className="h-[260px] w-full animate-pulse rounded-card bg-surface motion-reduce:animate-none" aria-hidden />
         ) : candles.length > 0 ? (
-          <PriceChart candles={candles} lines={lines} markers={markers} precision={digits} />
+          <MarketChart
+            candles={candles}
+            lines={lines}
+            markers={markers}
+            variant="full"
+            range={range}
+            onRangeChange={(next) => void changeRange(next)}
+            loading={loading}
+            precision={digits}
+          />
         ) : (
           <p className="p-4 text-sm text-muted">{detail.data?.candlesError ?? "No price history yet."}</p>
         )}

@@ -2,7 +2,8 @@
  * Market list and live price in human units, for the HTTP contract.
  * Not guarded (scripts may use it); app code imports via `@/lib/decibel`.
  */
-import type { Candle, Market, Price } from "../schemas";
+import { rangeToInterval, type CandleInterval } from "../charts";
+import type { Candle, CandleRange, CandlesResponse, Market, Price } from "../schemas";
 import { getDecibel } from "./client";
 import { TradeError } from "./errors";
 import { baseSymbol, fromChainUnits, toValidOrderSize, type MarketPrecision } from "./units";
@@ -51,14 +52,45 @@ export async function assertTradableSize(marketName: string, size: number): Prom
 }
 
 /** Last `minutes` one-minute candles for a market, ascending, ms timestamps. */
-export async function getCandles(marketName: string, minutes = 200): Promise<Candle[]> {
+export type CandleWindow = { interval: CandleInterval; count: number };
+
+/** The last `count` candles of `interval` for a market, ascending. */
+export async function getCandles(marketName: string, window: CandleWindow): Promise<Candle[]> {
   const d = getDecibel();
   const endTime = Date.now();
-  const startTime = endTime - minutes * 60_000;
-  const rows = await d.read.candlesticks.getByName({ marketName, interval: "1m", startTime, endTime });
+  const startTime = endTime - window.count * intervalMs(window.interval);
+  const rows = await d.read.candlesticks.getByName({ marketName, interval: window.interval, startTime, endTime });
   return rows
     .map((r) => ({ t: r.t, o: r.o, h: r.h, l: r.l, c: r.c, v: r.v }))
     .sort((a, b) => a.t - b.t);
+}
+
+function intervalMs(interval: CandleInterval): number {
+  switch (interval) {
+    case "1m":
+      return 60_000;
+    case "5m":
+      return 300_000;
+    case "15m":
+      return 900_000;
+    case "1h":
+      return 3_600_000;
+  }
+}
+
+/**
+ * Candles for one market over a named range, for `GET /api/candles`. Unknown
+ * markets are refused before the exchange is asked, like `getPrice`.
+ */
+export async function getCandlesByRange(marketName: string, range: CandleRange): Promise<CandlesResponse> {
+  const d = getDecibel();
+  const markets = await d.read.markets.getAll();
+  if (!markets.some((m) => m.market_name === marketName)) {
+    throw new TradeError("UNKNOWN_MARKET", `Unknown market "${marketName}".`);
+  }
+  const spec = rangeToInterval(range);
+  const candles = await getCandles(marketName, spec);
+  return { market: marketName, range, interval: spec.interval, candles };
 }
 
 /**
@@ -93,8 +125,9 @@ export async function getPrices(marketNames: string[]): Promise<Record<string, n
  * A market that fails is left out (and logged): its card falls back to the
  * strip drawn from the idea alone.
  */
-export async function getCandlesFor(marketNames: string[], minutes: number): Promise<Record<string, Candle[]>> {
-  const settled = await Promise.allSettled(marketNames.map((name) => getCandles(name, minutes)));
+export async function getCandlesFor(marketNames: string[], range: CandleRange): Promise<Record<string, Candle[]>> {
+  const spec = rangeToInterval(range);
+  const settled = await Promise.allSettled(marketNames.map((name) => getCandles(name, spec)));
   const candles: Record<string, Candle[]> = {};
   settled.forEach((result, i) => {
     const name = marketNames[i] as string;

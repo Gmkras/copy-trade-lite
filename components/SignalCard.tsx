@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { Card } from "@/components/Card";
 import { IdeaStrip } from "@/components/IdeaStrip";
-import { PriceChart, type ChartLine, type ChartMarker } from "@/components/PriceChart";
+import { MarketChart, type ChartLine, type ChartMarker } from "@/components/MarketChart";
+import { useToast } from "@/components/Toast";
+import { fetchEnvelope } from "@/hooks/usePoll";
 import { amount, symbolOf, timeAgo } from "@/lib/format";
-import type { AuthorStats, Candle, SignalView } from "@/lib/schemas";
+import type { AuthorStats, Candle, CandleRange, CandlesResponse, SignalView } from "@/lib/schemas";
 import { progressSentence, timeLeftLabel } from "@/lib/signals/math";
 
 type SignalCardProps = {
@@ -29,13 +31,39 @@ const NO_MARKERS: ChartMarker[] = [];
 /**
  * One trade idea as a social post a first-time visitor can read without
  * tapping: who, the direction in words and colour, the coin's own candles
- * with the idea drawn over them (the same chart as the detail), and one
+ * with the idea drawn over them (the same chart as everywhere else), and one
  * action that says where it goes.
+ *
+ * The last hour comes with the feed; a longer range is fetched once when the
+ * user asks for it and kept here, so the feed's refresh does not reset it.
  */
 export function SignalCard({ signal, stats, now, livePrice, candles }: SignalCardProps) {
+  const { show } = useToast();
   const initial = signal.author.trim().charAt(0).toUpperCase() || "?";
   const up = signal.side === "up";
   const digits = signal.entryPrice >= 100 ? 0 : 2;
+
+  const [range, setRange] = useState<CandleRange>("1h");
+  const [override, setOverride] = useState<{ range: CandleRange; candles: Candle[] } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function changeRange(next: CandleRange) {
+    setRange(next);
+    if (next === "1h") return; // the feed keeps the hour fresh
+    if (override?.range === next) return;
+    setLoading(true);
+    try {
+      const response = await fetchEnvelope<CandlesResponse>(`/api/candles/${encodeURIComponent(signal.market)}?range=${next}`);
+      setOverride({ range: next, candles: response.candles });
+    } catch (error) {
+      show(error instanceof Error ? error.message : "Couldn't load more history.", { variant: "error" });
+      setRange("1h");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const shown = range === "1h" ? candles : override?.range === range ? override.candles : candles;
 
   const lines = useMemo<ChartLine[]>(
     () => [
@@ -66,9 +94,19 @@ export function SignalCard({ signal, stats, now, livePrice, candles }: SignalCar
         {symbolOf(signal.market)} goes {up ? "up ↑" : "down ↓"}
       </p>
 
-      {candles.length > 1 ? (
+      {shown.length > 1 ? (
         <div className="flex flex-col gap-1">
-          <PriceChart candles={candles} lines={lines} markers={NO_MARKERS} height={CARD_CHART_HEIGHT} precision={digits} />
+          <MarketChart
+            candles={shown}
+            lines={lines}
+            markers={NO_MARKERS}
+            variant="card"
+            range={range}
+            onRangeChange={(next) => void changeRange(next)}
+            loading={loading}
+            height={CARD_CHART_HEIGHT}
+            precision={digits}
+          />
           <p className="text-sm text-muted">{sentence}</p>
         </div>
       ) : (

@@ -31,7 +31,14 @@ export function CoinPills({ markets, selected, onSelect }: CoinPillsProps) {
   }
 
   return (
-    <div ref={container} role="radiogroup" aria-label="Coin" className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-2">
+    <div
+      ref={container}
+      role="radiogroup"
+      aria-label="Coin"
+      className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-1"
+      // The row fades at its right edge so a cut-off pill reads as "more coins".
+      style={{ maskImage: "linear-gradient(to right, black calc(100% - 28px), transparent)", WebkitMaskImage: "linear-gradient(to right, black calc(100% - 28px), transparent)" }}
+    >
       {markets.map((market, index) => {
         const active = market.name === selected;
         return (

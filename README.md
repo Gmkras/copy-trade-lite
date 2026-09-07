@@ -22,10 +22,10 @@ The demo path is the same as [step 7 below](#run-it-locally): Trade → Buy → 
 | — | App shell: validated env + testnet guard, design tokens, base components, two-tab navigation | ✅ Done (`bootstrap-app`) |
 | MUST 1 | Connect to Decibel on Aptos testnet and authenticate the account | ✅ Done (`decibel-testnet-connection`) — `pnpm smoke` |
 | MUST 2 | Real testnet order with builder codes (approve → place), fee bound enforced | ✅ Done (`decibel-testnet-connection`) — `pnpm approve`, `pnpm order:once` |
-| MUST 3 | Kid-friendly trade screen: coin, Up/Down, how much, one button | ✅ Done (`trade-screen`) — `/trade` |
+| MUST 3 | Kid-friendly trade screen: coin, Up/Down, how much, one button | ✅ Done (`trade-screen`, `trade-chart`) — `/trade`, with the coin's live chart (candles / line / area, 1h–1w, zoom) above the Up/Down choice |
 | MUST 4 | Live account: equity, positions + PnL, open orders, fills (5 s polling, honest staleness) | ✅ Done (`trade-screen`) — `/trade` |
 | SHOULD 5 | Signal authoring: entry = live price, TP %, SL %, hold duration | ✅ Done (`copy-trade-signals`) — "Post an idea" on `/` |
-| SHOULD 6 | Signal on a chart with entry / take-profit / stop-loss lines | ✅ Done (`copy-trade-signals`, `signal-visible-in-feed`) — every feed card draws its coin's candles with the three lines and the live price; `/signals/[id]` is the full-size chart with the copies |
+| SHOULD 6 | Signal on a chart with entry / take-profit / stop-loss lines | ✅ Done (`copy-trade-signals`, `signal-visible-in-feed`, `trade-chart`) — every feed card draws its coin's candles with the three lines and the live price; `/signals/[id]` is the full-size chart with the copies; every chart has the same toolbar (chart type, range 1h · 4h · 1d · 1w, zoom) |
 | SHOULD 7 | One-click copy from the copier's own account, builder code attached | ✅ Done (`copy-trade-signals`) — "Copy this trade" |
 | SHOULD 8 | Persisted signal history with per-author track record | ✅ Done (`copy-trade-signals`) — libSQL: a local file, or Turso when deployed |
 | STRETCH | Mobile-friendly layout | ✅ Done — designed at 375 px first, verified in a real browser |
@@ -149,7 +149,7 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 
    **Demo path (what a reviewer does first, ~90 seconds).** Use a phone-sized viewport (DevTools → device toolbar → 375 px):
 
-   1. **Trade** tab → BTC is selected → tap **Up ↑** → tap the **0.00002** chip. The yellow button reads "Buy 0.00002 BTC ≈ $1.60".
+   1. **Trade** tab → BTC is selected, "1 BTC = $80,237 · +0.06% · last hour" and the BTC chart of the last hour are at the top (try **Line**, **1d** or **+** on its toolbar; pinch or scroll also zooms) → tap **Up ↑** → tap the **0.00002** chip. The yellow button reads "Buy 0.00002 BTC ≈ $1.60" and is visible without scrolling on a 375 × 812 phone.
    2. Tap it once → "Sending your order…" → green toast **See it on the explorer** (testnet transaction, status Success) → scroll to **Your account**: Equity, Available, PnL and the position with PnL in $ and %.
    3. **Feed** tab → **Post an idea**: your name, BTC, **Up**, take profit 3 %, stop loss 2 %, hold 4 hours. The entry is the live price, read on the server; the dollar previews follow what you type. Tap **Post this idea**.
    4. The new card is first in the feed: "BTC goes up ↑", the BTC candles of the last hour with the **Entry**, **Take profit** and **Stop loss** lines, "now $… · right at the entry", "live · 4h left · copied 0×". Tap the yellow **See it on the chart**.
@@ -191,7 +191,9 @@ The app runs on any Node host. It was deployed on Vercel with a Turso database, 
 
 **Trade screen** (`pnpm dev`, phone-sized viewport, 375 px, <http://localhost:3000/trade>):
 
-- [ ] Default: BTC selected, Up selected, first chip selected, "1 BTC = $…" shows a price, yellow button enabled with size and ≈ dollar value. No trading jargon anywhere.
+- [ ] Default: BTC selected, Up selected, first chip selected, "1 BTC = $…" shows a price with the change over the last hour, the BTC chart renders with **Candles · 1h**, yellow button enabled with size and ≈ dollar value and visible without scrolling at 375 × 812. No trading jargon anywhere.
+- [ ] Tap **AAVE** → the price and the chart switch to AAVE with the same chart type and range; the coin row fades at its right edge to show it scrolls.
+- [ ] Tap **Line**, then **1d** → a line over the last day of 15-minute points; the change figure now says "· last day"; reload → still Line. Tap **+** twice → fewer bars on screen each time; **⟲** shows the whole range again.
 - [ ] Tap **Down ↓** and the third chip → button reads "Sell 0.0002 BTC ≈ $…"; nothing is sent until you tap it.
 - [ ] Type `0` or `5` in the box → button disabled, red hint "Choose an amount between 0.00002 and 0.01 BTC".
 - [ ] Tap the yellow button once → "Sending your order…", then a green toast with **See it on the explorer** (opens a successful testnet transaction); within 10 s the position in **Your account** updates.
@@ -225,6 +227,7 @@ The app runs on any Node host. It was deployed on Vercel with a Turso database, 
 |---|---|
 | `curl localhost:3000/api/markets` | `ok:true`, BTC/USD first with `minSize 0.00002`; only markets whose minimum fits under `MAX_ORDER_SIZE` are listed |
 | `curl localhost:3000/api/price/FOO%2FUSD` | 422 `UNKNOWN_MARKET` |
+| `curl "localhost:3000/api/candles/BTC%2FUSD?range=1w"` | 200 with about 168 ascending hourly candles and `interval: "1h"`; `range=1h` → ~60 one-minute candles; `range=3y` → 422 "Choose a range of 1h, 4h, 1d or 1w."; unknown market → 422 `UNKNOWN_MARKET` |
 | `curl -X POST localhost:3000/api/order -H "content-type: application/json" -d '{"market":"BTC/USD","side":"up","size":"abc"}'` | 422 `INVALID_SIZE` with the allowed range |
 | … `-d '{"market":"BTC/USD","side":"up","size":0.00002,"builderFee":1}'` | 422 `INVALID_INPUT` "Unexpected field: builderFee." (same for `price`, `builderAddr`) |
 | … `-d '{not json'` | 400 `BAD_JSON` |
@@ -255,8 +258,9 @@ pnpm build       # production build; must succeed
 
 ```
 app/                    Next.js App Router: layout, feed (/), /trade, /signals/[id]
-app/api/                markets, price/[market], account, order, signals, signals/[id], signals/[id]/copy — every route goes through apiHandler
-components/             shell (BigButton, Card, Sheet, Toast, BottomNav), trading (CoinPills, SideToggle, SizePicker, TradeForm, AccountCard, TradeScreen), signals (Feed, SignalCard with the per-coin PriceChart, IdeaStrip fallback, PostIdeaSheet, SignalDetail, CopyPanel, PriceChart)
+app/api/                markets, price/[market], candles/[market]?range=, account, order, signals, signals/[id], signals/[id]/copy — every route goes through apiHandler
+components/             shell (BigButton, Card, Sheet, Toast, BottomNav), trading (CoinPills, SideToggle, SizePicker, TradeForm with the price hero and chart, AccountCard, TradeScreen), signals (Feed, SignalCard, IdeaStrip fallback, PostIdeaSheet, SignalDetail, CopyPanel), MarketChart / MarketChartInner (lightweight-charts with the type · range · zoom toolbar, used by all three)
+lib/charts.ts           range → candle interval, range change, plain-language range labels (tests)
 hooks/usePoll.ts        polling with last-good-data + stale flag, fetch/post envelope helpers (tests)
 hooks/useDemoPasscode.ts  sends the stored demo code, asks for it on a 401 and retries (PasscodeSheet)
 lib/auth.ts             assertDemoAccess: constant-time header check, no-op when DEMO_PASSCODE is empty (tests)
@@ -330,6 +334,8 @@ What the review actually caught — these are the changes I made to the generate
 - **Two honesty fixes.** A copy stores the *reference* price, not a confirmed fill, so the interface says "at about $…"; and a spec scenario used `DOGE/USD` as a market that "does not exist" — it does exist on testnet, so the scenario was corrected rather than left to pass by luck.
 - **A deploy that could not sign.** The first deployment refused every order with `FEE_BOUND`: the approval record `pnpm approve` writes was a gitignored local file, which a serverless host never has. The plan had not seen it because the local file was always there. The record moved into the database (design D7 of `deploy-demo`), and the agent's first reading of the result — "fills went up, so the order went through" — was wrong too: the extra fill was a local one. The deployed order was only counted as proof once the network log showed the `200` and the explorer link.
 - **A chart nobody found.** A reviewer's first comment was "I think you missed *visualise a signal on the chart*". The chart existed, one tap away — behind a card button labelled "Copy", which reads as "trade now" and, on the public URL, as "needs the code". The feed now shows every idea on its coin's own candles, and the button says where it goes. Two drafts of that card were thrown away the same hour: a level strip and a hand-drawn SVG line, both replaced by the real chart because a reviewer expects the chart, not a picture of one (`signal-visible-in-feed`, `design.md.old` and `.old2`).
+- **A layout that only fit on paper.** The design for the Trade-screen chart said "160 px keeps the yellow button above the fold, ≈ 740 by arithmetic". The browser measured 868. Ten toolbar controls need two rows at 375 px, so the chart became 110 px, the hero one line and the gaps 16 px, and the number in the design is now the measured one (732), with the previous version kept as `design.md.old`.
+- **Chart labels that hid their names.** Turning off the axis label on a card's level line also removed its title in lightweight-charts, so the first version of the cards drew unlabeled lines; the fix was a small collision rule (the nearest label gives way, the entry and the live price always win) rather than hiding anything.
 - **A gate that ran too late.** Task 2.2 said to call `assertDemoAccess` as the first statement of each write route; inside `apiHandler` that would have run *after* the body was parsed. The wrapper gained a `guard` that runs before anything is read, so a refused request never reaches the schema, the SDK or the database.
 
 Two decisions I overrode after seeing the result: the size range stays out of the request schema (so every rejection quotes the same allowed range, from one place in the domain), and a list may repeat its primary action once per card — the constitution now says so explicitly instead of the code quietly breaking the old wording.
@@ -338,7 +344,7 @@ Two decisions I overrode after seeing the result: the size range stays out of th
 
 Each feature is an OpenSpec change (`openspec/changes/<name>/`) with a proposal, a delta spec, a design and a task list; tasks are implemented one by one, each with its own verification and commit, then the change is reviewed against `specs/constitution.md` and archived. When a design decision changes during implementation, the previous artifact is kept next to it as `*.old`. The archive folder is the record of what was planned, what was built and what changed after review.
 
-Eight changes, in order: `bootstrap-app` → `decibel-testnet-connection` → `trade-screen` → `copy-trade-signals` → `polish-and-delivery` → `refresh-app-shell-spec` → `deploy-demo` → `signal-visible-in-feed`. `specs/constitution.md` holds the rules every one of them was checked against, each written as something you can actually run.
+Nine changes, in order: `bootstrap-app` → `decibel-testnet-connection` → `trade-screen` → `copy-trade-signals` → `polish-and-delivery` → `refresh-app-shell-spec` → `deploy-demo` → `signal-visible-in-feed` → `trade-chart`. `specs/constitution.md` holds the rules every one of them was checked against, each written as something you can actually run.
 
 The safety review is in [`docs/SAFETY_REVIEW.md`](docs/SAFETY_REVIEW.md): every rule the brief grades, mapped to the file that enforces it and the check that was run, with the observed output.
 

@@ -45,11 +45,15 @@ type Describable = {
   size: number;
 };
 
-/** "Ana thinks BTC goes up: in at $80,000, out at $82,400 or $78,400, for 4 hours." */
+/**
+ * "Ana thinks BTC goes up: in at $80,000, out at $82,400 or $78,400, for 4 hours."
+ * The default author name is "You", which takes "think", not "thinks".
+ */
 export function describe(signal: Describable): string {
   const symbol = symbolOf(signal.market);
   const digits = signal.entryPrice >= 100 ? 0 : 2;
-  return `${signal.author} thinks ${symbol} goes ${signal.side}: in at $${money(signal.entryPrice, digits)}, out at $${money(signal.tpPrice, digits)} or $${money(signal.slPrice, digits)}, for ${holdLabel(signal.holdHours)}.`;
+  const verb = signal.author.trim().toLowerCase() === "you" ? "think" : "thinks";
+  return `${signal.author} ${verb} ${symbol} goes ${signal.side}: in at $${money(signal.entryPrice, digits)}, out at $${money(signal.tpPrice, digits)} or $${money(signal.slPrice, digits)}, for ${holdLabel(signal.holdHours)}.`;
 }
 
 /** "went Up on BTC" */

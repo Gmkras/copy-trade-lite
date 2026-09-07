@@ -6,9 +6,10 @@ import { isExpired, signalsRepo } from "@/lib/signals";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const CANDLE_MINUTES = 200;
+/** Four hours of one-minute candles: the detail's default range, at full resolution. */
+const CANDLE_WINDOW = { interval: "1m", count: 240 } as const;
 
-/** GET /api/signals/[id] — signal, copies, live price and the last 200 one-minute candles. */
+/** GET /api/signals/[id] — signal, copies, live price and the last four hours of one-minute candles. */
 export const GET = apiHandler<SignalDetail>({
   run: async ({ params }) => {
     const repo = signalsRepo();
@@ -18,7 +19,7 @@ export const GET = apiHandler<SignalDetail>({
     // Price and candles are best-effort: the lines and the copy panel still work without them.
     const [priceResult, candlesResult] = await Promise.allSettled([
       getPrice(signal.market),
-      getCandles(signal.market, CANDLE_MINUTES),
+      getCandles(signal.market, CANDLE_WINDOW),
     ]);
 
     let price: Price | null = null;

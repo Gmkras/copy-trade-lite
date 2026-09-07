@@ -186,8 +186,25 @@ export type SignalList = {
   updatedAt: number;
 };
 
-/** One-minute candle for the chart (ms timestamps). */
+/** One candle for the chart (ms timestamps); the interval depends on the range asked for. */
 export type Candle = { t: number; o: number; h: number; l: number; c: number; v: number };
+
+/** How much history a chart shows. Each range maps to one candle interval (lib/charts.ts). */
+export const CandleRange = z.enum(["1h", "4h", "1d", "1w"], {
+  errorMap: () => ({ message: "Choose a range of 1h, 4h, 1d or 1w." }),
+});
+export type CandleRange = z.infer<typeof CandleRange>;
+
+/** Query of GET /api/candles/[market]. */
+export const CandlesQuery = z.object({ range: CandleRange.default("1h") }).strict();
+
+/** GET /api/candles/[market] response. */
+export type CandlesResponse = {
+  market: string;
+  range: CandleRange;
+  interval: string;
+  candles: Candle[];
+};
 
 /** GET /api/signals/[id]. */
 export type SignalDetail = {

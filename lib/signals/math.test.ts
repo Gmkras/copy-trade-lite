@@ -56,6 +56,12 @@ suite("labels", () => {
       describe({ author: "Ana", market: "BTC/USD", side: "up", entryPrice: 80_000, tpPrice: 82_400, slPrice: 78_400, holdHours: 4, size: 0.00002 }),
     ).toBe("Ana thinks BTC goes up: in at $80,000, out at $82,400 or $78,400, for 4 hours.");
   });
+
+  it("conjugates for the default name You", () => {
+    expect(
+      describe({ author: "You", market: "AMZN/USD", side: "down", entryPrice: 259, tpPrice: 233, slPrice: 261, holdHours: 8, size: 0.01 }),
+    ).toBe("You think AMZN goes down: in at $259, out at $233 or $261, for 8 hours.");
+  });
 });
 
 suite("ideaProgress", () => {

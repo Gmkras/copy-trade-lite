@@ -10,8 +10,8 @@ import type { Candle, SignalList, SignalView } from "../schemas";
 import { isExpired } from "./math";
 import { signalsRepo } from "./repo";
 
-/** How much price history each card draws: the last hour. */
-export const FEED_CANDLE_MINUTES = 60;
+/** How much price history each card draws by default: the last hour. */
+export const FEED_CANDLE_RANGE = "1h" as const;
 
 export async function loadFeed(): Promise<SignalList> {
   const repo = signalsRepo();
@@ -24,7 +24,7 @@ export async function loadFeed(): Promise<SignalList> {
   let prices: Record<string, number> = {};
   let candles: Record<string, Candle[]> = {};
   try {
-    [prices, candles] = await Promise.all([getPrices(markets), getCandlesFor(markets, FEED_CANDLE_MINUTES)]);
+    [prices, candles] = await Promise.all([getPrices(markets), getCandlesFor(markets, FEED_CANDLE_RANGE)]);
   } catch (error) {
     // The ideas are still worth showing without a live price on them.
     console.warn("[feed] live prices unavailable:", error);
