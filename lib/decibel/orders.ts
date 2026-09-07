@@ -8,12 +8,11 @@
  * client and is asserted against the recorded approval and the protocol cap
  * immediately before the transaction is built.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
-
 import { TimeInForce } from "@decibeltrade/sdk";
 import type { PlaceOrderResult } from "@decibeltrade/sdk";
+import type { Client } from "@libsql/client";
 
+import { ensureSchema, getDb } from "../signals/db";
 import { getDecibel } from "./client";
 import { TradeError, humanizeSdkError } from "./errors";
 import {
@@ -27,9 +26,6 @@ import {
 
 /** Protocol-wide cap for builder fees, in basis points. */
 export const PROTOCOL_MAX_BUILDER_FEE_BPS = 10;
-
-/** Where the approve script records what it approved (gitignored `data/`). */
-export const APPROVAL_RECORD_PATH = "data/builder-approval.json";
 
 export type BuilderApproval = {
   builderAddr: string;
@@ -77,7 +73,7 @@ export type OrderDeps = {
   subaccountAddr: string;
   getMarkets: () => Promise<MarketPrecision[]>;
   getMidPrice: (marketName: string) => Promise<number | undefined>;
-  getApprovedFeeBps: () => number | null;
+  getApprovedFeeBps: () => Promise<number | null>;
   placeOrder: (args: {
     marketName: string;
     price: number;
@@ -92,37 +88,47 @@ export type OrderDeps = {
   }) => Promise<PlaceOrderResult>;
 };
 
-/** Reads the approval the approve script recorded, or null if it never ran. */
-export function readBuilderApproval(path = APPROVAL_RECORD_PATH): BuilderApproval | null {
-  if (!existsSync(path)) return null;
-  try {
-    const parsed = JSON.parse(readFileSync(path, "utf8")) as Partial<BuilderApproval>;
-    if (
-      typeof parsed.builderAddr !== "string" ||
-      typeof parsed.subaccountAddr !== "string" ||
-      typeof parsed.maxFeeBps !== "number" ||
-      typeof parsed.transactionHash !== "string"
-    ) {
-      return null;
-    }
-    return parsed as BuilderApproval;
-  } catch {
+/**
+ * Reads the approval `pnpm approve` recorded for this subaccount and builder,
+ * or null if it never ran. The record lives in the database rather than a
+ * local file so a deployment shares it with the machine that approved.
+ */
+export async function readBuilderApproval(
+  subaccountAddr: string,
+  builderAddr: string,
+  db: Client = getDb(),
+): Promise<BuilderApproval | null> {
+  await ensureSchema(db);
+  const result = await db.execute({
+    sql: `SELECT max_fee_bps, transaction_hash, approved_at FROM builder_approvals
+          WHERE subaccount_addr = ? AND builder_addr = ?`,
+    args: [subaccountAddr, builderAddr],
+  });
+  const row = result.rows[0];
+  if (!row) return null;
+  const maxFeeBps = Number(row.max_fee_bps);
+  const transactionHash = row.transaction_hash;
+  const approvedAt = row.approved_at;
+  if (!Number.isInteger(maxFeeBps) || typeof transactionHash !== "string" || typeof approvedAt !== "string") {
     return null;
   }
+  return { builderAddr, subaccountAddr, maxFeeBps, transactionHash, approvedAt };
 }
 
-function writeBuilderApproval(record: BuilderApproval, path = APPROVAL_RECORD_PATH): void {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, JSON.stringify(record, null, 2) + "\n", "utf8");
+async function writeBuilderApproval(record: BuilderApproval, db: Client = getDb()): Promise<void> {
+  await ensureSchema(db);
+  await db.execute({
+    sql: `INSERT OR REPLACE INTO builder_approvals (subaccount_addr, builder_addr, max_fee_bps, transaction_hash, approved_at)
+          VALUES (?, ?, ?, ?, ?)`,
+    args: [record.subaccountAddr, record.builderAddr, record.maxFeeBps, record.transactionHash, record.approvedAt],
+  });
 }
 
 /** The approved max fee for the configured builder/subaccount, if recorded. */
-export function getApprovedBuilderFee(): number | null {
+export async function getApprovedBuilderFee(): Promise<number | null> {
   const d = getDecibel();
-  const record = readBuilderApproval();
-  if (!record) return null;
-  if (record.builderAddr !== d.builderAddr || record.subaccountAddr !== d.subaccountAddr) return null;
-  return record.maxFeeBps;
+  const record = await readBuilderApproval(d.subaccountAddr, d.builderAddr);
+  return record?.maxFeeBps ?? null;
 }
 
 /**
@@ -158,7 +164,7 @@ export async function approveBuilderFee(): Promise<BuilderApproval> {
     transactionHash: hash,
     approvedAt: new Date().toISOString(),
   };
-  writeBuilderApproval(record);
+  await writeBuilderApproval(record);
   return record;
 }
 
@@ -267,7 +273,7 @@ export async function placeMarketOrder(
   const slTriggerPrice = input.slPrice === undefined ? undefined : toTickPrice(input.slPrice, market);
 
   // 5. Fee bound — the last thing before the transaction is built.
-  assertFeeBound(deps.feeBps, deps.getApprovedFeeBps());
+  assertFeeBound(deps.feeBps, await deps.getApprovedFeeBps());
 
   // 6. Sign and submit.
   const priceUnits = toAggressiveLimitPrice(mid, input.isBuy, market, input.slippage);

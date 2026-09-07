@@ -33,9 +33,6 @@ libSQL is SQLite's protocol over HTTP with the same dialect, so `SCHEMA_SQL` and
 ### D6. What the reviewer receives
 The README gets a "Try the deployed demo" block at the top: the URL, the sentence "browsing is open; to place a trade you need the demo code included in the submission email", and a reminder that everything is testnet play money. The "localhost only" warning becomes a "what protects the deployed app" note. `docs/SAFETY_REVIEW.md` rows for rules 1, 2 and 5 gain the deployment column, and the biggest-risk note is rewritten around the passcode instead of localhost.
 
-### D7. The builder-fee approval record moves into the database
-Found during task 3.3: the deployed app refused every order with `FEE_BOUND` because `assertFeeBound` reads the approval `pnpm approve` recorded, and that record was `data/builder-approval.json` — a gitignored local file a serverless deploy never has. The approval itself is on chain, but the SDK exposes no read for it, so the app keeps its own record; it now lives in a `builder_approvals` table (keyed by subaccount and builder) in the same database as the signals. `pnpm approve` writes it, `getApprovedBuilderFee()` reads it, both async. Alternatives: an environment variable with the approval hash — rejected, it would let a deploy assert a bound it never verified; approving automatically on the first order — rejected, a signing step inside a request path is exactly what the approve-then-place design keeps out of the app.
-
 ## Risks / Trade-offs
 
 - [The shared testnet balance runs out while the reviewer is trying it] → the passcode keeps casual visitors out, `MAX_ORDER_SIZE` caps each order at about $1.60, and the README says how to mint more; if it empties, the account card and the error message say so plainly rather than failing silently.

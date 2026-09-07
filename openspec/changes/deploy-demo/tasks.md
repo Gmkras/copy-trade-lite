@@ -13,9 +13,10 @@
 
 ## 3. Deploy (≈45 min)
 
-- [ ] 3.1 Create the Turso database and load the schema; set `DATABASE_URL` and `DATABASE_AUTH_TOKEN` locally and confirm the app works against it (post an idea, copy it, restart, they are still there). Record the database name in the commit body, never the token.
-- [ ] 3.2 Create the Vercel project from the GitHub repository with the six environment variables (`PRIVATE_KEY`, `APTOS_NODE_API_KEY`, `BUILDER_ADDRESS`, `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `DEMO_PASSCODE`) plus `BUILDER_FEE_BPS`, `DECIBEL_NETWORK` and `MAX_ORDER_SIZE`. Verify: the build succeeds and the deployed URL serves the feed.
+- [x] 3.1 Create the Turso database and load the schema; set `DATABASE_URL` and `DATABASE_AUTH_TOKEN` locally and confirm the app works against it (post an idea, copy it, restart, they are still there). Record the database name in the commit body, never the token.
+- [x] 3.2 Create the Vercel project from the GitHub repository with the six environment variables (`PRIVATE_KEY`, `APTOS_NODE_API_KEY`, `BUILDER_ADDRESS`, `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `DEMO_PASSCODE`) plus `BUILDER_FEE_BPS`, `DECIBEL_NETWORK` and `MAX_ORDER_SIZE`. Verify: the build succeeds and the deployed URL serves the feed.
 - [ ] 3.3 Run the full demo path on the deployed URL from a phone-sized viewport: browse without the code, then enter it, place a trade, post an idea, copy it, check the position. Verify: record the two transaction hashes from the deployed app in the commit body; confirm reading works in a private window without the code and writing does not.
+- [ ] 3.4 (added during 3.3) Move the builder-fee approval record from `data/builder-approval.json` to a `builder_approvals` table (design D7): `readBuilderApproval`/`getApprovedBuilderFee` become async over the database, `pnpm approve` writes there, `OrderDeps.getApprovedFeeBps` returns a promise. Verify: `pnpm test` green; `pnpm approve` against the Turso URL records the row and a second run reports "already approved"; after redeploy, a deployed `POST /api/order` with the code returns 200.
 
 ## 4. Honest documentation (≈40 min)
 

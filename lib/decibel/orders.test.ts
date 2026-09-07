@@ -37,7 +37,7 @@ function fakeDeps(overrides: Partial<OrderDeps> = {}): OrderDeps & { placeOrder:
     subaccountAddr: "0x" + "2".padStart(64, "0"),
     getMarkets: async () => [BTC],
     getMidPrice: async () => 80_000,
-    getApprovedFeeBps: () => 10,
+    getApprovedFeeBps: async () => 10,
     ...overrides,
     placeOrder,
   };
@@ -134,7 +134,7 @@ describe("placeMarketOrder", () => {
   });
 
   it("rejects when the fee exceeds the approved max, before signing", async () => {
-    const deps = fakeDeps({ getApprovedFeeBps: () => 5 });
+    const deps = fakeDeps({ getApprovedFeeBps: async () => 5 });
     await expectTradeError(
       placeMarketOrder({ marketName: "BTC/USD", isBuy: true, size: 0.00002 }, deps),
       "FEE_BOUND",

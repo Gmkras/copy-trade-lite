@@ -46,6 +46,16 @@ export const SCHEMA_STATEMENTS = [
     created_at INTEGER NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS signal_copies_signal_id ON signal_copies (signal_id)`,
+  // What `pnpm approve` recorded, so orders can assert the fee bound from any
+  // process that shares this database (a serverless deploy has no local files).
+  `CREATE TABLE IF NOT EXISTS builder_approvals (
+    subaccount_addr  TEXT    NOT NULL,
+    builder_addr     TEXT    NOT NULL,
+    max_fee_bps      INTEGER NOT NULL,
+    transaction_hash TEXT    NOT NULL,
+    approved_at      TEXT    NOT NULL,
+    PRIMARY KEY (subaccount_addr, builder_addr)
+  )`,
 ];
 
 /** Creates a client for `url`. A `file:` URL gets its directory created first. */
