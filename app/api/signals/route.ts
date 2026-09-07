@@ -11,8 +11,9 @@ export const GET = apiHandler<SignalList>({
   run: async () => {
     const repo = signalsRepo();
     const now = Date.now();
-    const signals: SignalView[] = repo.listSignals().map((s) => ({ ...s, expired: isExpired(s, now) }));
-    return { signals, authors: repo.authorStats(), updatedAt: now };
+    const [rows, authors] = await Promise.all([repo.listSignals(), repo.authorStats()]);
+    const signals: SignalView[] = rows.map((s) => ({ ...s, expired: isExpired(s, now) }));
+    return { signals, authors, updatedAt: now };
   },
 });
 
@@ -30,7 +31,7 @@ export const POST = apiHandler<SignalView, SignalInput>({
     const size = await assertTradableSize(body.market, body.size);
     const { tpPrice, slPrice } = tpSlPrices(body.side, price.mid, body.tpPct, body.slPct);
     const createdAt = Date.now();
-    const signal = signalsRepo().createSignal({
+    const signal = await signalsRepo().createSignal({
       author: body.author,
       market: body.market,
       side: body.side,

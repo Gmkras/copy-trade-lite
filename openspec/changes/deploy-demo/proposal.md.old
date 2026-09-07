@@ -16,7 +16,6 @@ The brief accepts either a recording or "a deployed link we can click". A link l
 ### Modified Capabilities
 - `copy-trade-signals`: the persistence requirement stops naming a local file and describes durable storage that survives restarts and redeploys.
 - `trading`: adds the authenticated-writes requirement that applies to every route that can sign a transaction.
-- `app-shell`: the environment requirement lists `DATABASE_URL`, `DATABASE_AUTH_TOKEN` and `DEMO_PASSCODE` instead of `DB_PATH`, and states that a clone with no database configuration still starts.
 
 ## Non-goals
 

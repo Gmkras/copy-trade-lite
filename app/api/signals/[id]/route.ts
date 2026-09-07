@@ -12,7 +12,7 @@ const CANDLE_MINUTES = 200;
 export const GET = apiHandler<SignalDetail>({
   run: async ({ params }) => {
     const repo = signalsRepo();
-    const signal = repo.getSignal(params.id ?? "");
+    const signal = await repo.getSignal(params.id ?? "");
     if (!signal) throw new NotFoundError("That idea was not found. It may have been posted on another computer.");
 
     // Price and candles are best-effort: the lines and the copy panel still work without them.
@@ -36,7 +36,7 @@ export const GET = apiHandler<SignalDetail>({
 
     return {
       signal: { ...signal, expired: isExpired(signal) },
-      copies: repo.listCopies(signal.id),
+      copies: await repo.listCopies(signal.id),
       price,
       priceError,
       candles,

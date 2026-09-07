@@ -11,12 +11,14 @@ type FeedProps = {
   initial: SignalList;
   markets: Market[];
   authorName?: string;
+  /** Set when the server could not read the store: shown instead of the empty state. */
+  loadError?: string | null;
 };
 
 const FEED_POLL_MS = 10_000;
 
 /** The social feed: ideas as cards, newest first, plus the Post an idea sheet. */
-export function Feed({ initial, markets, authorName = "You" }: FeedProps) {
+export function Feed({ initial, markets, authorName = "You", loadError = null }: FeedProps) {
   const feed = usePoll<SignalList>("/api/signals", FEED_POLL_MS);
   const [sheetOpen, setSheetOpen] = useState(false);
   const data = feed.data ?? initial;
@@ -38,7 +40,12 @@ export function Feed({ initial, markets, authorName = "You" }: FeedProps) {
         </div>
       </div>
 
-      {data.signals.length === 0 ? (
+      {data.signals.length === 0 && loadError ? (
+        <div className="rounded-card border border-line bg-surface p-6 text-center">
+          <p className="font-display text-lg">Ideas are unavailable</p>
+          <p className="mt-1 text-sm text-muted">{loadError}</p>
+        </div>
+      ) : data.signals.length === 0 ? (
         <div className="rounded-card border border-line bg-surface p-6 text-center">
           <p className="font-display text-lg">No ideas yet — post the first one.</p>
           <p className="mt-1 text-sm text-muted">Say where you think a coin goes; anyone can copy it with one tap.</p>

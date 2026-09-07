@@ -20,7 +20,7 @@ export const POST = apiHandler<CopyReceipt, CopyInput>({
   schema: CopyInput,
   run: async ({ body, params }) => {
     const repo = signalsRepo();
-    const signal = repo.getSignal(params.id ?? "");
+    const signal = await repo.getSignal(params.id ?? "");
     if (!signal) throw new NotFoundError("That idea was not found.");
     if (isExpired(signal)) {
       throw new TradeError("SIGNAL_EXPIRED", "This idea has expired, so it can't be copied anymore. Pick a live one from the feed.");
@@ -44,13 +44,16 @@ export const POST = apiHandler<CopyReceipt, CopyInput>({
 
     // The order is on chain. Recording the copy must never turn that into a failure.
     let copyId: string | null = null;
+    let copyCount = signal.copyCount;
     try {
-      copyId = repo.addCopy(signal.id, {
+      const copy = await repo.addCopy(signal.id, {
         copier: body.copier,
         size: result.size,
         fillPrice: result.referencePrice,
         txHash: result.transactionHash,
-      }).id;
+      });
+      copyId = copy.id;
+      copyCount = (await repo.getSignal(signal.id))?.copyCount ?? signal.copyCount + 1;
     } catch (error) {
       console.error(
         `[copy] ORDER PLACED BUT NOT RECORDED — signal ${signal.id}, tx ${result.transactionHash}, copier ${body.copier}:`,
@@ -68,7 +71,7 @@ export const POST = apiHandler<CopyReceipt, CopyInput>({
       referencePrice: result.referencePrice,
       limitPrice: result.limitPrice,
       copyId,
-      copyCount: repo.getSignal(signal.id)?.copyCount ?? signal.copyCount + (copyId ? 1 : 0),
+      copyCount,
       tpSlAttached,
     };
   },

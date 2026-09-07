@@ -1,19 +1,19 @@
 /**
- * Signal repository over `node:sqlite`. Synchronous, prepared statements only
+ * Signal repository over libSQL. Asynchronous, parameterised statements only
  * (no SQL built from strings), every row parsed with zod before it leaves this
  * module so a schema drift fails loudly instead of leaking `undefined` to the UI.
  *
- * `createRepo(db)` takes any DatabaseSync (`:memory:` in tests); `signalsRepo()`
- * binds the process-wide database.
+ * `createRepo(db)` takes any libSQL client (`file::memory:` in tests);
+ * `signalsRepo()` binds the process-wide database.
  */
 import { randomUUID } from "node:crypto";
-import type { DatabaseSync } from "node:sqlite";
 
+import type { Client } from "@libsql/client";
 import { z } from "zod";
 
 import { symbolOf } from "../format";
 import type { AuthorStats, OrderSide, Signal, SignalCopy } from "../schemas";
-import { getDb } from "./db";
+import { ensureSchema, getDb } from "./db";
 
 const SignalRow = z.object({
   id: z.string(),
@@ -74,6 +74,21 @@ const SELECT_SIGNAL = `
   SELECT s.*, (SELECT count(*) FROM signal_copies c WHERE c.signal_id = s.id) AS copy_count
   FROM signals s`;
 
+const INSERT_SIGNAL = `
+  INSERT INTO signals (id, author, market, side, entry_price, tp_pct, sl_pct, tp_price, sl_price, hold_hours, size, note, created_at, expires_at, outcome)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`;
+
+const INSERT_COPY = `
+  INSERT INTO signal_copies (id, signal_id, copier, size, fill_price, tx_hash, created_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?)`;
+
+const SELECT_COPIES = `SELECT * FROM signal_copies WHERE signal_id = ? ORDER BY created_at ASC`;
+
+const SELECT_STATS = `
+  SELECT s.author AS author, count(DISTINCT s.id) AS ideas, count(c.id) AS copies
+  FROM signals s LEFT JOIN signal_copies c ON c.signal_id = s.id
+  GROUP BY s.author ORDER BY copies DESC, ideas DESC, author ASC`;
+
 function toSignal(row: z.infer<typeof SignalRow>): Signal {
   return {
     id: row.id,
@@ -108,65 +123,90 @@ function toCopy(row: z.infer<typeof CopyRow>): SignalCopy {
   };
 }
 
-export function createRepo(db: DatabaseSync) {
-  const insertSignal = db.prepare(`
-    INSERT INTO signals (id, author, market, side, entry_price, tp_pct, sl_pct, tp_price, sl_price, hold_hours, size, note, created_at, expires_at, outcome)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`);
-  const selectAll = db.prepare(`${SELECT_SIGNAL} ORDER BY s.created_at DESC, s.id DESC`);
-  const selectOne = db.prepare(`${SELECT_SIGNAL} WHERE s.id = ?`);
-  const selectCopies = db.prepare(`SELECT * FROM signal_copies WHERE signal_id = ? ORDER BY created_at ASC`);
-  const insertCopy = db.prepare(`
-    INSERT INTO signal_copies (id, signal_id, copier, size, fill_price, tx_hash, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)`);
-  const selectStats = db.prepare(`
-    SELECT s.author AS author, count(DISTINCT s.id) AS ideas, count(c.id) AS copies
-    FROM signals s LEFT JOIN signal_copies c ON c.signal_id = s.id
-    GROUP BY s.author ORDER BY copies DESC, ideas DESC, author ASC`);
+/**
+ * libSQL returns each row as an array-like object. zod needs a plain object,
+ * and the numeric columns arrive as `bigint` when a value came from `count(*)`
+ * on some drivers, so widen them here rather than in every schema.
+ */
+function plain(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    out[key] = typeof value === "bigint" ? Number(value) : value;
+  }
+  return out;
+}
+
+export function createRepo(db: Client) {
+  const ready = () => ensureSchema(db);
 
   return {
-    createSignal(input: NewSignal): Signal {
+    async createSignal(input: NewSignal): Promise<Signal> {
+      await ready();
       const id = randomUUID();
-      insertSignal.run(
-        id,
-        input.author,
-        input.market,
-        input.side,
-        input.entryPrice,
-        input.tpPct,
-        input.slPct,
-        input.tpPrice,
-        input.slPrice,
-        input.holdHours,
-        input.size,
-        input.note ?? null,
-        input.createdAt,
-        input.expiresAt,
-      );
-      return this.getSignal(id) as Signal;
+      await db.execute({
+        sql: INSERT_SIGNAL,
+        args: [
+          id,
+          input.author,
+          input.market,
+          input.side,
+          input.entryPrice,
+          input.tpPct,
+          input.slPct,
+          input.tpPrice,
+          input.slPrice,
+          input.holdHours,
+          input.size,
+          input.note ?? null,
+          input.createdAt,
+          input.expiresAt,
+        ],
+      });
+      return (await this.getSignal(id)) as Signal;
     },
 
-    listSignals(): Signal[] {
-      return selectAll.all().map((row) => toSignal(SignalRow.parse(row)));
+    async listSignals(): Promise<Signal[]> {
+      await ready();
+      const result = await db.execute(`${SELECT_SIGNAL} ORDER BY s.created_at DESC, s.id DESC`);
+      return result.rows.map((row) => toSignal(SignalRow.parse(plain(row))));
     },
 
-    getSignal(id: string): Signal | null {
-      const row = selectOne.get(id);
-      return row ? toSignal(SignalRow.parse(row)) : null;
+    async getSignal(id: string): Promise<Signal | null> {
+      await ready();
+      const result = await db.execute({ sql: `${SELECT_SIGNAL} WHERE s.id = ?`, args: [id] });
+      const row = result.rows[0];
+      return row ? toSignal(SignalRow.parse(plain(row))) : null;
     },
 
-    listCopies(signalId: string): SignalCopy[] {
-      return selectCopies.all(signalId).map((row) => toCopy(CopyRow.parse(row)));
+    async listCopies(signalId: string): Promise<SignalCopy[]> {
+      await ready();
+      const result = await db.execute({ sql: SELECT_COPIES, args: [signalId] });
+      return result.rows.map((row) => toCopy(CopyRow.parse(plain(row))));
     },
 
-    addCopy(signalId: string, input: NewCopy): SignalCopy {
+    async addCopy(signalId: string, input: NewCopy): Promise<SignalCopy> {
+      await ready();
       const id = randomUUID();
       const createdAt = input.createdAt ?? Date.now();
-      insertCopy.run(id, signalId, input.copier, input.size, input.fillPrice, input.txHash, createdAt);
-      return { id, signalId, copier: input.copier, size: input.size, fillPrice: input.fillPrice, txHash: input.txHash, createdAt };
+      await db.execute({
+        sql: INSERT_COPY,
+        args: [id, signalId, input.copier, input.size, input.fillPrice, input.txHash, createdAt],
+      });
+      return {
+        id,
+        signalId,
+        copier: input.copier,
+        size: input.size,
+        fillPrice: input.fillPrice,
+        txHash: input.txHash,
+        createdAt,
+      };
     },
 
-    authorStats(): AuthorStats[] {
-      return selectStats.all().map((row) => StatsRow.parse(row));
+    async authorStats(): Promise<AuthorStats[]> {
+      await ready();
+      const result = await db.execute(SELECT_STATS);
+      return result.rows.map((row) => StatsRow.parse(plain(row)));
     },
   };
 }
@@ -175,7 +215,7 @@ export type SignalsRepo = ReturnType<typeof createRepo>;
 
 let repo: SignalsRepo | null = null;
 
-/** Repository bound to the process-wide database at DB_PATH. */
+/** Repository bound to the process-wide database at DATABASE_URL. */
 export function signalsRepo(): SignalsRepo {
   if (!repo) repo = createRepo(getDb());
   return repo;

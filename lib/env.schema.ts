@@ -38,7 +38,15 @@ export const envSchema = z.object({
     .number({ invalid_type_error: "must be a number" })
     .positive("must be a positive number (e.g. 0.01)")
     .default(0.01),
-  DB_PATH: z.string().min(1, "must be a file path").default("./data/signals.db"),
+  // libSQL URL: a local file by default, a remote database when deployed.
+  DATABASE_URL: z.string().min(1, "must be a libSQL URL").default("file:./data/signals.db"),
+  // Only needed by a remote database (Turso). Empty locally.
+  DATABASE_AUTH_TOKEN: z.string().optional(),
+  /**
+   * Shared demo gate for the routes that sign transactions. When empty (the
+   * default, and what a local clone gets) those routes behave as before.
+   */
+  DEMO_PASSCODE: z.string().default(""),
 });
 
 export type Env = Readonly<z.infer<typeof envSchema>>;
