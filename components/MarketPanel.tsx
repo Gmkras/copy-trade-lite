@@ -25,10 +25,13 @@ type MarketPanelProps = {
   market: Market;
   /** The price poll lives in TradeScreen, because the order button needs the same mid. */
   price: PollState<Price>;
+  /** Latest streamed mid for this market, when the stream is connected. */
+  liveMid?: number | null;
+  live?: boolean;
 };
 
 /** The selected coin's price and chart: the middle panel of the Trade screen. */
-export function MarketPanel({ market, price }: MarketPanelProps) {
+export function MarketPanel({ market, price, liveMid = null, live = false }: MarketPanelProps) {
   const wide = useMediaQuery(WIDE);
   const [range, setRange] = useState<CandleRange>("1h");
   const candles = usePoll<CandlesResponse>(
@@ -36,7 +39,9 @@ export function MarketPanel({ market, price }: MarketPanelProps) {
     CANDLES_POLL_MS,
   );
 
-  const mid = price.data?.mid ?? null;
+  // The stream wins when it is connected; the poll is the fallback and the
+  // first paint.
+  const mid = liveMid ?? price.data?.mid ?? null;
   const shown = candles.data?.candles ?? [];
   const change = rangeChange(shown);
   const digits = market.priceStep >= 1 ? 0 : 2;
@@ -54,7 +59,10 @@ export function MarketPanel({ market, price }: MarketPanelProps) {
             {change.abs >= 0 ? "+" : "−"}{Math.abs(change.pct).toFixed(2)}% · {rangeLabel(range)}
           </span>
         ) : null}
-        {price.stale ? <span className="ml-2 rounded-full border border-line px-2 text-xs text-muted">couldn&apos;t refresh</span> : null}
+        {price.stale && !live ? (
+          <span className="ml-2 rounded-full border border-line px-2 text-xs text-muted">couldn&apos;t refresh</span>
+        ) : null}
+        {live ? <span className="ml-2 text-xs text-up">live</span> : null}
       </p>
 
       {shown.length > 1 ? (

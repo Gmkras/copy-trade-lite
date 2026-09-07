@@ -161,6 +161,24 @@ export function spreadLabels(positions: number[], minGap: number, min: number, m
   return result;
 }
 
+/**
+ * Has a live price reached the level an open idea was waiting for?
+ *
+ * Used only to decide whether to ask the server for a fresh feed: the outcome
+ * itself is always settled server-side from the candles, so the interface can
+ * never show a result the server did not store.
+ */
+export function crossedALevel(
+  signal: { side: OrderSide; tpPrice: number; slPrice: number; outcome: string | null; expired: boolean },
+  price: number,
+): boolean {
+  if (signal.outcome !== null || signal.expired) return false;
+  if (!Number.isFinite(price) || price <= 0) return false;
+  return signal.side === "up"
+    ? price >= signal.tpPrice || price <= signal.slPrice
+    : price <= signal.tpPrice || price >= signal.slPrice;
+}
+
 /** Copies closer than this share one chart marker; nearer than that their labels overlap. */
 export const MARKER_CLUSTER_MS = 10 * 60_000;
 

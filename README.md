@@ -31,7 +31,8 @@ The demo path is the same as [step 7 below](#run-it-locally): Trade → Buy → 
 | STRETCH | Mobile-friendly layout | ✅ Done — designed at 375 px first, verified in a real browser |
 | Polish | Desktop layout | ✅ Done (`desktop-layout`) — from 1024 px the feed shows the list beside the open idea and Trade becomes a trading desk (coins on top, chart, order ticket, account); the nav moves from the bottom bar to a top bar |
 | STRETCH | Outcome marking (hit TP / hit SL / expired) with a per-author record | ✅ Done (`signal-outcomes`) — every idea is settled from its market's candles and the feed shows "✅ It worked", "❌ It didn't work" or "⏱ Time ran out", plus "1 of 2 worked" per author |
-| STRETCH | WebSocket, leaderboard page | ⏳ Not done — see [What's next](#whats-next) |
+| STRETCH | Real-time updates (WebSocket) | ✅ Done (`live-updates`) — `GET /api/stream` forwards the SDK's server-side subscriptions over SSE: the price moves on its own, the account updates within about a second of an order, and an idea settles the moment it crosses. **Polling is never removed**: it slows to a 30 s heartbeat while the stream is connected and takes over the instant it drops, and each screen says which mode it is in |
+| STRETCH | Leaderboard page | ⏳ Not done — see [What's next](#whats-next) |
 | Delivery | Deployed link with a passcode-gated write path (instead of a recording) | ✅ Done (`deploy-demo`) — [Try the deployed demo](#try-the-deployed-demo) |
 
 Proof on the Aptos testnet explorer: first order from the script `0x5f433998292cf8350bbbb92e52fd334c70e4c92c98132b90caf6f73291f86875`, builder-fee approval `0x0c237551c7a68fad58c6999cc0f883fc78bce6d947cf845f384d34fa5e198f24`, order placed from the Trade screen `0x9e3276151dae78bb1a41e9dd7ae16148a42f90e9bb467df165dd43e51b9cf7af`, **signal copied with one tap** `0x54c0e82a700bec0d4372b0ed6a589c10732f988b5bb306e02abac5acc924dff3`. From the **deployed** app: order `0xf2bcbd0dcdda8466a7abfe501e48f3a41abc58f0685967e89fad7e2a9f49d027`, copy `0x9503723e776d545f5a66b3c24dafb44c5fb9bcffe7c427396c4159ee4232909b`.
@@ -156,7 +157,7 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 
    **Demo path (what a reviewer does first, ~90 seconds).** Use a phone-sized viewport (DevTools → device toolbar → 375 px):
 
-   1. **Trade** tab → BTC is selected, "1 BTC = $80,237 · +0.06% · last hour" and the BTC chart of the last hour are at the top (try **Line**, **1d** or **+** on its toolbar; pinch or scroll also zooms) → tap **Up ↑** → tap the **0.00002** chip. The yellow button reads "Buy 0.00002 BTC ≈ $1.60" and is visible without scrolling on a 375 × 812 phone.
+   1. **Trade** tab → BTC is selected, "1 BTC = $80,237 · +0.06% · last hour" **moving on its own** (the label next to it says "live") and the BTC chart of the last hour are at the top (try **Line**, **1d** or **+** on its toolbar; pinch or scroll also zooms) → tap **Up ↑** → tap the **0.00002** chip. The yellow button reads "Buy 0.00002 BTC ≈ $1.60" and is visible without scrolling on a 375 × 812 phone.
    2. Tap it once → "Sending your order…" → green toast **See it on the explorer** (testnet transaction, status Success) → scroll to **Your account**: Equity, Available, PnL and the position with PnL in $ and %.
    3. **Feed** tab → **Post an idea**: your name, BTC, **Up**, take profit 3 %, stop loss 2 %, hold 4 hours. The entry is the live price, read on the server; the dollar previews follow what you type. Tap **Post this idea**.
    4. The new card is first in the feed: "BTC goes up ↑", the BTC candles of the last hour with the **Entry**, **Take profit** and **Stop loss** lines, "now $… · right at the entry", "live · 4h left · copied 0×". Tap the yellow **See it on the chart**.
@@ -235,6 +236,7 @@ The app runs on any Node host. It was deployed on Vercel with a Turso database, 
 |---|---|
 | `curl localhost:3000/api/markets` | `ok:true`, BTC/USD first with `minSize 0.00002`; only markets whose minimum fits under `MAX_ORDER_SIZE` are listed |
 | `curl localhost:3000/api/price/FOO%2FUSD` | 422 `UNKNOWN_MARKET` |
+| `curl -N localhost:3000/api/stream` | a `retry:` line, then `hello`, then `price` events with a market name and a positive mid as they happen, `account` events with an **empty** payload, and a `bye` before the window closes; needs no demo code, like every read route |
 | `curl "localhost:3000/api/candles/BTC%2FUSD?range=1w"` | 200 with about 168 ascending hourly candles and `interval: "1h"`; `range=1h` → ~60 one-minute candles; `range=3y` → 422 "Choose a range of 1h, 4h, 1d or 1w."; unknown market → 422 `UNKNOWN_MARKET` |
 | `curl -X POST localhost:3000/api/order -H "content-type: application/json" -d '{"market":"BTC/USD","side":"up","size":"abc"}'` | 422 `INVALID_SIZE` with the allowed range |
 | … `-d '{"market":"BTC/USD","side":"up","size":0.00002,"builderFee":1}'` | 422 `INVALID_INPUT` "Unexpected field: builderFee." (same for `price`, `builderAddr`) |
@@ -269,9 +271,11 @@ pnpm build       # production build; must succeed
 
 ```
 app/                    Next.js App Router: layout, feed (/), /trade, /signals/[id]
-app/api/                markets, price/[market], candles/[market]?range=, account, order, signals, signals/[id], signals/[id]/copy — every route goes through apiHandler
+app/api/                markets, price/[market], candles/[market]?range=, account, stream (SSE), order, signals, signals/[id], signals/[id]/copy — every route but the stream goes through apiHandler
 components/             shell (BigButton, Card, Sheet, Toast, AppNav — bottom bar on phones, top bar on wide screens), trading (CoinPills, MarketPanel with the price hero and chart, TradeForm as the order ticket, SideToggle, SizePicker, AccountCard, TradeScreen laying the four panels out), signals (Feed, SignalCard, IdeaStrip fallback, PostIdeaSheet, SignalDetail, CopyPanel, DetailRail / FeedRail for the wide second column), MarketChart / MarketChartInner (lightweight-charts with the type · range · zoom toolbar, used by all three)
 hooks/useMediaQuery.ts  the one breakpoint hook (useSyncExternalStore, server snapshot false) for the few places CSS cannot decide
+hooks/useLive.ts        the SSE client: live prices per market and an account nudge, with a grace period across reconnects (tests)
+lib/decibel/stream.ts   one hub per process over the SDK's subscriptions, reference-counted, account events coalesced (tests)
 lib/charts.ts           range → candle interval, range change, plain-language range labels (tests)
 hooks/usePoll.ts        polling with last-good-data + stale flag, fetch/post envelope helpers (tests)
 hooks/useDemoPasscode.ts  sends the stored demo code, asks for it on a 401 and retries (PasscodeSheet)
@@ -311,6 +315,7 @@ Graded explicitly by the brief; enforced in code, not by convention:
 - **Validate before signing** — `toValidOrderSize` (finite, > 0, ≥ market minimum, ≤ `MAX_ORDER_SIZE`) and `assertTpSlSides` run before any pricing or signing; every rejection is a plain-language message with the allowed range.
 - **One validated boundary** — `POST /api/order` and `POST /api/signals/[id]/copy` are the only ways an order enters; both bodies are `.strict()` zod schemas (coin, direction, size, names — nothing else) and both call the same `placeMarketOrder`. A copy cannot choose the price, the builder address, the fee or the exit levels: they come from the stored signal and the server constants. Errors never expose stacks, URLs or keys (`lib/api.ts`, tested).
 - **The entry price is a server fact** — `POST /api/signals` reads the live mid itself; `SignalInput` has no `entryPrice` field and `.strict()` rejects one (tested).
+- **The live stream carries nothing private** — `GET /api/stream` sends prices and, for the account, an **empty** "something changed" event; the browser then fetches the same `/api/account` anyone can fetch. No balance, position or address travels on that channel, and it accepts no input at all. It is a read route, so it needs no demo code.
 - **Honest about outcomes** — an idea is settled from its market's candles, not from fills, so an idea nobody copied is judged by the same rule as one copied ten times. When a single candle reached **both** levels, the order of the two moves inside it is unknowable and the app records the **stop loss**: it never claims a win the data cannot support. Once written, an outcome is never recomputed.
 - **Honest about fills** — an immediate-or-cancel order can be sent without filling, so copies record the reference price and the UI says "at about $…"; the receipt reports `tpSlAttached: false` if the exchange ever refuses the exit levels. A copy whose order succeeded is never reported as a failure, even if writing it to the database fails (that case is logged loudly).
 - **The database holds no secrets** — ideas, copies and the builder-approval record (addresses, a fee cap and a public transaction hash). If it is unreachable the feed says so in plain words and the Trade screen keeps working; orders never touch it.
@@ -320,9 +325,9 @@ Graded explicitly by the brief; enforced in code, not by convention:
 
 With another day, in this order:
 
-1. **Real-time updates**: an SSE route forwarding the SDK's price and position subscriptions, with the current polling kept as the fallback — so an outcome appears the moment it happens instead of on the next 10-second poll.
-2. **A leaderboard page** from the author record already computed (`ideas`, `copies`, `settled`, `won`), with a third navigation tab.
-3. **Wallet-based signing** so each person copies from their own wallet instead of the shared server key — the change that removes the biggest risk below.
+1. **A leaderboard page** from the author record already computed (`ideas`, `copies`, `settled`, `won`), with a third navigation tab.
+2. **Wallet-based signing** so each person copies from their own wallet instead of the shared server key — the change that removes the biggest risk below.
+3. **A shared stream across instances**: today each serverless instance holds its own subscriptions, which is right for a demo and would become a broker if this ever had real traffic.
 
 ### Biggest risk in this submission
 

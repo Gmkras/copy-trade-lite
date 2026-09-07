@@ -11,10 +11,12 @@ type AccountCardProps = {
   stale: boolean;
   loading: boolean;
   error: string | null;
+  /** True while the live stream is connected; false means the timer is doing the work. */
+  live?: boolean;
 };
 
 /** Equity, Available, PnL in three big numbers; Positions / Orders / Fills as collapsible card lists. */
-export function AccountCard({ state, stale, loading, error }: AccountCardProps) {
+export function AccountCard({ state, stale, loading, error, live = false }: AccountCardProps) {
   const pnl = state?.unrealizedPnl ?? 0;
   const pnlColor = pnl > 0 ? "text-up" : pnl < 0 ? "text-down" : "text-text";
 
@@ -28,7 +30,13 @@ export function AccountCard({ state, stale, loading, error }: AccountCardProps) 
           </span>
         ) : loading ? (
           <span className="text-xs text-muted">loading…</span>
-        ) : null}
+        ) : (
+          // Which mode we are in, in plain words. Never claims to be live while
+          // the stream is down.
+          <span className={["text-xs", live ? "text-up" : "text-muted"].join(" ")}>
+            {live ? "live" : "refreshing every 5s"}
+          </span>
+        )}
       </div>
 
       {state === null ? (

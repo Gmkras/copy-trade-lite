@@ -22,6 +22,7 @@ export {
   toMarket,
 } from "./markets";
 export { TradeError, humanizeSdkError, errorText, isNotFoundError, type TradeErrorCode } from "./errors";
+export { subscribeLive, liveListenerCount, type LiveEvent, type PriceEvent } from "./stream";
 export {
   PROTOCOL_MAX_BUILDER_FEE_BPS,
   approveBuilderFee,

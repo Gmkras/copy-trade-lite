@@ -1,6 +1,7 @@
 import { describe as suite, expect, it } from "vitest";
 
 import {
+  crossedALevel,
   describe,
   groupCopyMarkers,
   headline,
@@ -121,6 +122,41 @@ suite("progressSentence", () => {
   it("explains a missing price and an ended idea", () => {
     expect(progressSentence(UP, null)).toBe("live price unavailable");
     expect(progressSentence({ ...UP, expired: true }, 80_600)).toBe("this idea has ended");
+  });
+});
+
+suite("crossedALevel", () => {
+  const open = { ...UP, outcome: null, expired: false };
+
+  it("sees an Up idea reach either level", () => {
+    expect(crossedALevel(open, 82_400)).toBe(true); // exactly the take profit
+    expect(crossedALevel(open, 82_500)).toBe(true);
+    expect(crossedALevel(open, 78_400)).toBe(true); // exactly the stop loss
+    expect(crossedALevel(open, 78_000)).toBe(true);
+  });
+
+  it("mirrors the sides for a Down idea", () => {
+    const down = { ...DOWN, outcome: null, expired: false };
+    expect(crossedALevel(down, 77_600)).toBe(true); // take profit is below
+    expect(crossedALevel(down, 81_600)).toBe(true); // stop loss is above
+    expect(crossedALevel(down, 80_000)).toBe(false);
+  });
+
+  it("says no while the price is between the levels", () => {
+    expect(crossedALevel(open, 80_000)).toBe(false);
+    expect(crossedALevel(open, 82_399)).toBe(false);
+    expect(crossedALevel(open, 78_401)).toBe(false);
+  });
+
+  it("says no for an idea that is already finished", () => {
+    expect(crossedALevel({ ...open, outcome: "tp" }, 82_500)).toBe(false);
+    expect(crossedALevel({ ...open, expired: true }, 82_500)).toBe(false);
+  });
+
+  it("says no for a price it would not trust", () => {
+    expect(crossedALevel(open, 0)).toBe(false);
+    expect(crossedALevel(open, -1)).toBe(false);
+    expect(crossedALevel(open, Number.NaN)).toBe(false);
   });
 });
 

@@ -112,14 +112,25 @@ export function usePoll<T>(url: string | null, intervalMs: number): PollState<T>
     }
   }, [url]);
 
+  // Fetch when there is something new to fetch: on mount and whenever the url
+  // changes. Deliberately not when the cadence changes.
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // Re-arm the timer when the cadence changes, without asking again. Callers
+  // switch between a live cadence and a fallback one, and a stream that
+  // reconnects would otherwise cause a burst of requests on every reconnect.
+  useEffect(() => {
     const timer = window.setInterval(() => void load(), intervalMs);
-    return () => {
-      window.clearInterval(timer);
-      controller.current?.abort();
-    };
+    return () => window.clearInterval(timer);
   }, [load, intervalMs]);
+
+  // Drop an in-flight request when the component goes away.
+  useEffect(() => {
+    const inFlight = controller;
+    return () => inFlight.current?.abort();
+  }, []);
 
   const refresh = useCallback(() => {
     void load();

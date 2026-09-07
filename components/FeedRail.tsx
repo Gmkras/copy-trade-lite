@@ -1,11 +1,13 @@
 "use client";
 
 import { SignalCard } from "@/components/SignalCard";
+import { useLive } from "@/hooks/useLive";
 import { useMediaQuery, WIDE } from "@/hooks/useMediaQuery";
 import { usePoll } from "@/hooks/usePoll";
 import type { SignalList } from "@/lib/schemas";
 
 const FEED_POLL_MS = 10_000;
+const HEARTBEAT_MS = 30_000;
 
 /**
  * The detail screen's first column on wide screens: the same idea cards as
@@ -17,7 +19,8 @@ const FEED_POLL_MS = 10_000;
  */
 export function FeedRail({ currentId }: { currentId: string }) {
   const wide = useMediaQuery(WIDE);
-  const feed = usePoll<SignalList>(wide ? "/api/signals" : null, FEED_POLL_MS);
+  const live = useLive(wide);
+  const feed = usePoll<SignalList>(wide ? "/api/signals" : null, live.live ? HEARTBEAT_MS : FEED_POLL_MS);
   if (!wide) return null;
 
   const data = feed.data;
@@ -36,7 +39,7 @@ export function FeedRail({ currentId }: { currentId: string }) {
             signal={signal}
             stats={statsByAuthor.get(signal.author)}
             now={data.updatedAt}
-            livePrice={data.prices[signal.market] ?? null}
+            livePrice={live.prices[signal.market] ?? data.prices[signal.market] ?? null}
             candles={data.candles[signal.market] ?? []}
           />
         </div>
