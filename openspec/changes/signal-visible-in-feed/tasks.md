@@ -13,7 +13,7 @@
 ## 3. Documentation and the live check (≈30 min)
 
 - [x] 3.1 README: status row SHOULD 6 says "feed strip with the live price + detail chart"; demo path step 4 names "See it on the chart"; "Try the deployed demo" sentence updated; replace `docs/signal-chart.png` caption if the feed screenshot is added next to it. Interview guide (outside the repo) gains the section for this change. Verify: `grep -n "Copy\b" README.md` shows no card-button reference to the old label.
-- [ ] 3.2 After the push and the Vercel deploy, open the live feed at 375 px with cleared storage. Verify: the cards draw the strips with a "now" dot and sentence without any code; tapping "See it on the chart" opens the chart; the two same-minute copies on Ana's idea render as one marker. Record the deployment URL in the commit body.
+- [x] 3.2 After the push and the Vercel deploy, open the live feed at 375 px with cleared storage. Verify: the cards draw the strips with a "now" dot and sentence without any code; tapping "See it on the chart" opens the chart; the two same-minute copies on Ana's idea render as one marker. Record the deployment URL in the commit body.
 
 ## 4. Change review
 
