@@ -6,18 +6,28 @@ Trade ideas as first-class objects: an author posts one with entry at the live p
 
 ## Requirements
 
-### Requirement: Signals are persisted locally and survive restarts
-The system SHALL store every posted signal and every copy in a local SQLite database file at `DB_PATH`, creating the file and tables on first use, and SHALL read them back after the server restarts. The database file SHALL be excluded from version control.
+### Requirement: Signals and copies are stored durably
+The system SHALL store every posted signal and every copy in a SQL database identified by `DATABASE_URL`, creating the schema on first use, and SHALL read them back after the process restarts or is redeployed. Locally the URL SHALL default to a file in `data/`, which is excluded from version control; in a deployment it SHALL point at a remote database and MAY require `DATABASE_AUTH_TOKEN`. No signal data SHALL be committed to the repository.
 
 #### Scenario: Restart keeps history
 - **GIVEN** two signals have been posted
-- **WHEN** the dev server is restarted and `GET /api/signals` is called
+- **WHEN** the server is restarted and `GET /api/signals` is called
 - **THEN** both signals are returned with their copies and counts
 
-#### Scenario: First use creates the file
-- **GIVEN** `data/signals.db` does not exist
+#### Scenario: First use creates the schema
+- **GIVEN** an empty database
 - **WHEN** the first signal is posted
-- **THEN** the file is created and the signal is stored; no manual migration step is needed
+- **THEN** the tables are created and the signal is stored; no manual migration step is needed
+
+#### Scenario: Redeploy keeps history
+- **GIVEN** the app is deployed with a remote `DATABASE_URL` and signals exist
+- **WHEN** a new version is deployed
+- **THEN** the feed still lists those signals with their copies
+
+#### Scenario: Unreachable database
+- **GIVEN** `DATABASE_URL` points at a database that cannot be reached
+- **WHEN** the feed is opened
+- **THEN** the screen explains in plain language that the ideas could not be loaded, and no stack trace or connection string is shown
 
 ### Requirement: Signal authoring uses the live price as entry
 `POST /api/signals` SHALL accept `{ author, market, side, tpPct, slPct, holdHours, size, note? }` and SHALL set the entry price from the live mid read on the server, never from the client. It SHALL compute the take-profit and stop-loss prices from the percentages (long: TP above entry, SL below; short: mirrored), SHALL reject percentages outside 0â€“100, hold durations outside 1â€“720 hours, sizes the trade screen would reject, and unknown fields, and SHALL return the stored signal with an `expiresAt` timestamp equal to creation time plus the hold duration.

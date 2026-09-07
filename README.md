@@ -2,7 +2,18 @@
 
 A dead-simple trading app on **Decibel (Aptos testnet)** that a smart 12-year-old could use, with a copy-trade signal feature on top. Built 100% in TypeScript with Next.js. **Testnet only, play money only.**
 
-> **Status:** work in progress, built change by change with Spec-Driven Development (OpenSpec). The table in [What works today](#what-works-today) is kept honest at every commit.
+> **Status:** built change by change with Spec-Driven Development (OpenSpec). The table in [What works today](#what-works-today) is kept honest at every commit.
+
+## Try the deployed demo
+
+**<https://copy-trade-lite-gilt.vercel.app>** — open it on your phone or in a 375 px viewport.
+
+- **Browsing is open:** the ideas feed, every idea on its chart, the account card and the live prices need nothing. **Tap "Copy" on any card to open that idea on its chart** (entry, take-profit and stop-loss lines over live candles) — that needs no code; only the final "Copy this trade" button does.
+- **Trading needs the demo code** included in the submission email. The first time you tap the yellow button the app asks for it, remembers it in your browser, and never asks again. Without the code every write route answers `401` and nothing is signed.
+- Everything is **play money on Aptos testnet**; the orders it places are real testnet transactions from one shared testnet account.
+- The first request after a quiet period can take a few seconds (serverless cold start); after that prices refresh every 5 s and the feed every 10 s.
+
+The demo path is the same as [step 7 below](#run-it-locally): Trade → Buy → see the position → Feed → Post an idea → Copy it.
 
 ## What works today
 
@@ -16,10 +27,17 @@ A dead-simple trading app on **Decibel (Aptos testnet)** that a smart 12-year-ol
 | SHOULD 5 | Signal authoring: entry = live price, TP %, SL %, hold duration | ✅ Done (`copy-trade-signals`) — "Post an idea" on `/` |
 | SHOULD 6 | Signal on a chart with entry / take-profit / stop-loss lines | ✅ Done (`copy-trade-signals`) — `/signals/[id]` |
 | SHOULD 7 | One-click copy from the copier's own account, builder code attached | ✅ Done (`copy-trade-signals`) — "Copy this trade" |
-| SHOULD 8 | Persisted signal history with per-author track record | ✅ Done (`copy-trade-signals`) — SQLite at `DB_PATH` |
+| SHOULD 8 | Persisted signal history with per-author track record | ✅ Done (`copy-trade-signals`) — libSQL: a local file, or Turso when deployed |
+| STRETCH | Mobile-friendly layout | ✅ Done — designed at 375 px first, verified in a real browser |
 | STRETCH | WebSocket, outcome marking (hit TP/SL), leaderboard | ⏳ Not done — see [What's next](#whats-next) |
+| Delivery | Deployed link with a passcode-gated write path (instead of a recording) | ✅ Done (`deploy-demo`) — [Try the deployed demo](#try-the-deployed-demo) |
 
-Proof on the Aptos testnet explorer: first order from the script `0x5f433998292cf8350bbbb92e52fd334c70e4c92c98132b90caf6f73291f86875`, builder-fee approval `0x0c237551c7a68fad58c6999cc0f883fc78bce6d947cf845f384d34fa5e198f24`, order placed from the Trade screen `0x9e3276151dae78bb1a41e9dd7ae16148a42f90e9bb467df165dd43e51b9cf7af`, **signal copied with one tap** `0x54c0e82a700bec0d4372b0ed6a589c10732f988b5bb306e02abac5acc924dff3`.
+Proof on the Aptos testnet explorer: first order from the script `0x5f433998292cf8350bbbb92e52fd334c70e4c92c98132b90caf6f73291f86875`, builder-fee approval `0x0c237551c7a68fad58c6999cc0f883fc78bce6d947cf845f384d34fa5e198f24`, order placed from the Trade screen `0x9e3276151dae78bb1a41e9dd7ae16148a42f90e9bb467df165dd43e51b9cf7af`, **signal copied with one tap** `0x54c0e82a700bec0d4372b0ed6a589c10732f988b5bb306e02abac5acc924dff3`. From the **deployed** app: order `0xf2bcbd0dcdda8466a7abfe501e48f3a41abc58f0685967e89fad7e2a9f49d027`, copy `0x9503723e776d545f5a66b3c24dafb44c5fb9bcffe7c427396c4159ee4232909b`.
+
+<p align="center">
+  <img src="docs/signal-chart.png" width="300" alt="An idea on its chart on the deployed app: one-minute BTC candles with the Entry line in yellow, Take profit in green and Stop loss in red, the live price, and the Copy this trade button below" />
+  <br /><sub>SHOULD 6 on the deployed app: the idea drawn on live candles with its three lines, one tap from the feed.</sub>
+</p>
 
 > **Play names, one account.** Authors and copiers are display names typed in the form; every order is signed with the single testnet key in `.env`. There is no login — that is out of scope for this take-home and is called out under [Safety](#safety).
 
@@ -53,10 +71,12 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 1. Open `.env`, fill in `PRIVATE_KEY` and `APTOS_NODE_API_KEY`, and put your **wallet address** in `BUILDER_ADDRESS` for now (any valid hex works to get started). Leave the rest as is:
 
    ```
-   BUILDER_FEE_BPS=10          # protocol cap; also the per-order fee
-   DECIBEL_NETWORK=testnet     # anything else refuses to start
-   MAX_ORDER_SIZE=0.01         # fat-finger cap in base units (BTC)
-   DB_PATH=./data/signals.db   # SQLite file, created on first use
+   BUILDER_FEE_BPS=10                    # protocol cap; also the per-order fee
+   DECIBEL_NETWORK=testnet               # anything else refuses to start
+   MAX_ORDER_SIZE=0.01                   # fat-finger cap in base units (BTC)
+   DATABASE_URL=file:./data/signals.db   # local SQLite file, created on first use
+   DATABASE_AUTH_TOKEN=                  # only for a remote database (see Deploy your own)
+   DEMO_PASSCODE=                        # empty locally: no code is asked for
    ```
 
 2. Prove the connection (no transactions):
@@ -93,7 +113,7 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
    ✓ play money ready
    ```
 
-5. Approve the builder fee (step 1 of builder codes; safe to re-run). A fresh clone always needs this, even if the wallet approved before: the approval lives on chain, but the local record the app checks before signing is in `data/`, which is not in version control. Skipping it stops the next step with "The builder fee has not been approved yet. Run `pnpm approve` once before trading."
+5. Approve the builder fee (step 1 of builder codes; safe to re-run). A fresh database always needs this, even if the wallet approved before: the approval lives on chain, but the record the app checks before signing is a row in the database at `DATABASE_URL`, and the SDK has no call to read the approval back. Skipping it stops the next step with "The builder fee has not been approved yet. Run `pnpm approve` once before trading."
 
    ```bash
    pnpm approve
@@ -101,7 +121,7 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
    ```
    approved          10 bps for 0x2cec…dd1e
    transaction       https://explorer.aptoslabs.com/txn/0x…?network=testnet
-   recorded in       data/builder-approval.json
+   recorded in       the database at DATABASE_URL (table builder_approvals)
    ✓ builder fee approved
    ```
 
@@ -137,7 +157,16 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 
    The first request after `pnpm dev` compiles the routes and can take ~8 s; after that the price and account refresh every 5 s and the feed every 10 s.
 
-> **Security note — localhost only.** The private key lives on the server side of this app and the write routes (coming in later changes) have no authentication. Do not expose the dev server to the internet. See [Safety](#safety).
+> **What protects the deployed app.** One testnet key signs every order, server-side. On the public URL the three routes that can sign or write (`POST /api/order`, `POST /api/signals`, `POST /api/signals/[id]/copy`) require the demo code in an `x-demo-passcode` header and answer `401` without it, before the body is even parsed; reads stay open. The key never leaves the server (`server-only` modules), the network guard refuses anything but testnet, `MAX_ORDER_SIZE` caps each order, and the builder-fee bound is asserted immediately before signing. The code is a demo gate, not a login — see [Safety](#safety) and the [biggest-risk note](#biggest-risk-in-this-submission). Locally, with `DEMO_PASSCODE` empty, nothing asks for a code.
+
+## Deploy your own
+
+The app runs on any Node host. It was deployed on Vercel with a Turso database, both on free plans:
+
+1. **Database.** Create a Turso database (`turso db create copy-trade-lite`), then take its URL (`turso db show copy-trade-lite --url`) and a token (`turso db tokens create copy-trade-lite`). A serverless filesystem is discarded between invocations, which is why the local `file:` database cannot be used there.
+2. **Approve from your machine.** Put the URL and token into your local `.env` as `DATABASE_URL` / `DATABASE_AUTH_TOKEN` and run `pnpm approve` once: the approval record is written to that database, where the deployment will read it.
+3. **Vercel.** Import the repository (Next.js defaults) and set the environment variables: `PRIVATE_KEY`, `APTOS_NODE_API_KEY`, `BUILDER_ADDRESS`, `BUILDER_FEE_BPS`, `DECIBEL_NETWORK=testnet`, `MAX_ORDER_SIZE`, `DATABASE_URL`, `DATABASE_AUTH_TOKEN` and a `DEMO_PASSCODE` of your choosing. Deploy; the schema is created on the first request.
+4. Share the URL freely and the code only with whoever should be able to trade. Rotate the code by changing the variable and redeploying.
 
 ## Manual test checklist (current state)
 
@@ -178,8 +207,15 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 - [ ] Open the card → chart with three labeled lines at the entry, take-profit and stop-loss prices, plus the plain-language sentence.
 - [ ] Tap **Copy this trade** once → busy label → toast with an explorer link → marker on the chart, "Copied 1×", copier listed.
 - [ ] Tap it twice quickly → only one order is placed.
-- [ ] Restart `pnpm dev` → the ideas and copies are still there (SQLite at `DB_PATH`).
+- [ ] Restart `pnpm dev` → the ideas and copies are still there (the database at `DATABASE_URL`).
 - [ ] An expired idea shows "expired" on the card and a disabled "This idea has expired" button on its detail.
+
+**Demo passcode** (set `DEMO_PASSCODE=something` in `.env`, restart `pnpm dev`):
+
+- [ ] Feed, idea detail and Trade all load without a code.
+- [ ] First tap on **Buy** → sheet "Enter the demo code". A wrong code → "That code wasn't accepted…" and the field is cleared. The right code → the order goes through; a second tap does not ask again.
+- [ ] `curl -X POST localhost:3000/api/order -H "content-type: application/json" -d '{"market":"BTC/USD","side":"up","size":0.00002}'` → `401 DEMO_CODE_REQUIRED`, no transaction; add `-H "x-demo-passcode: something"` → 200.
+- [ ] The value never appears in the page source or in any response.
 
 **API contract** (with the dev server running):
 
@@ -206,7 +242,7 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 ```bash
 pnpm typecheck   # tsc --noEmit, strict
 pnpm lint        # eslint
-pnpm test        # vitest: chain units, order safety checks (33 tests, no network)
+pnpm test        # vitest: chain units, order safety checks, repo, api, passcode gate (93 tests, no network)
 pnpm build       # production build; must succeed
 ```
 
@@ -218,18 +254,20 @@ pnpm build       # production build; must succeed
 app/                    Next.js App Router: layout, feed (/), /trade, /signals/[id]
 app/api/                markets, price/[market], account, order, signals, signals/[id], signals/[id]/copy — every route goes through apiHandler
 components/             shell (BigButton, Card, Sheet, Toast, BottomNav), trading (CoinPills, SideToggle, SizePicker, TradeForm, AccountCard, TradeScreen), signals (Feed, SignalCard, PostIdeaSheet, SignalDetail, CopyPanel, PriceChart)
-hooks/usePoll.ts        polling with last-good-data + stale flag (tests)
-lib/signals/db.ts       node:sqlite database at DB_PATH, schema created on first use (no native deps)
-lib/signals/repo.ts     prepared statements, zod-parsed rows, copy counts and author stats (tests)
+hooks/usePoll.ts        polling with last-good-data + stale flag, fetch/post envelope helpers (tests)
+hooks/useDemoPasscode.ts  sends the stored demo code, asks for it on a 401 and retries (PasscodeSheet)
+lib/auth.ts             assertDemoAccess: constant-time header check, no-op when DEMO_PASSCODE is empty (tests)
+lib/signals/db.ts       libSQL client at DATABASE_URL (file locally, Turso deployed), schema created once per process
+lib/signals/repo.ts     parameterised statements, zod-parsed rows, copy counts and author stats (tests)
 lib/signals/math.ts     TP/SL prices, expiry, plain-language wording (tests)
 lib/schemas.ts          zod OrderInput (.strict()) + shared response types (client-safe)
-lib/api.ts              apiHandler: one envelope, 422/400 readable errors, safe 502 (tests)
+lib/api.ts              apiHandler: guard before parsing, one envelope, 401/404/422/400 readable errors, safe 502 (tests)
 lib/format.ts           money, amount, pct, timeAgo (client-safe)
 lib/env.schema.ts       zod schema + loadEnv() (used by next.config.ts and scripts)
 lib/env.ts              server-only frozen env for app code
 lib/decibel/client.ts   SDK clients built once from env (TESTNET_CONFIG only), wallet/subaccount/builder
 lib/decibel/units.ts    chain-unit math: tick/lot rounding, size bounds (tests)
-lib/decibel/orders.ts   approveBuilderFee, placeMarketOrder with the fee bound asserted last (tests)
+lib/decibel/orders.ts   approveBuilderFee (record in the database), placeMarketOrder with the fee bound asserted last (tests)
 lib/decibel/account.ts  one-call account state with per-position PnL (tests)
 lib/decibel/markets.ts  tradable markets (human units) and live price
 lib/decibel/errors.ts   TradeError + plain-language mapping of SDK/chain errors
@@ -237,7 +275,7 @@ lib/decibel/index.ts    server-only gate: the only import path for app code
 scripts/                keygen, smoke, mint-usdc, approve-builder, order-once (tsx)
 specs/constitution.md   Non-negotiable rules with executable checks
 openspec/               SDD artifacts: config, active changes, archive (process evidence; *.old = previous versions)
-data/                   gitignored: builder-approval.json, signals.db
+data/                   gitignored: the local signals.db (ideas, copies, builder approval)
 ```
 
 ## Safety
@@ -247,11 +285,13 @@ Graded explicitly by the brief; enforced in code, not by convention:
 - **Testnet only** — `TESTNET_CONFIG` is the only Decibel config imported (`lib/decibel/client.ts`); `DECIBEL_NETWORK` must equal `testnet` or the process exits (`lib/env.schema.ts`, run from `next.config.ts` and every script).
 - **No secrets in the repo** — `.env*` and `data/` are gitignored since the first commit; `.env.example` has no real values; scripts never print keys.
 - **Secrets never reach the browser** — `lib/env.ts` and `lib/decibel/index.ts` import `server-only`; a client component importing them breaks the build (verified).
-- **Builder fee bound** — the fee is a server constant (`BUILDER_FEE_BPS`, validated `0..10` at startup); no function takes a fee parameter; `assertFeeBound` checks `fee ≤ approved max ≤ 10` immediately before the transaction is built, against the approval recorded by `pnpm approve`.
+- **Writes are gated on the public URL** — `assertDemoAccess` (`lib/auth.ts`) runs before the body of `POST /api/order`, `POST /api/signals` and `POST /api/signals/[id]/copy` is read; without the `x-demo-passcode` header the answer is `401` and nothing is signed. Constant-time compare; the expected value is never in a response, a log or the client bundle (checked on the live deployment). With `DEMO_PASSCODE` empty the routes behave as before, so a local clone needs no code.
+- **Builder fee bound** — the fee is a server constant (`BUILDER_FEE_BPS`, validated `0..10` at startup); no function takes a fee parameter; `assertFeeBound` checks `fee ≤ approved max ≤ 10` immediately before the transaction is built, against the approval `pnpm approve` recorded in the database.
 - **Validate before signing** — `toValidOrderSize` (finite, > 0, ≥ market minimum, ≤ `MAX_ORDER_SIZE`) and `assertTpSlSides` run before any pricing or signing; every rejection is a plain-language message with the allowed range.
 - **One validated boundary** — `POST /api/order` and `POST /api/signals/[id]/copy` are the only ways an order enters; both bodies are `.strict()` zod schemas (coin, direction, size, names — nothing else) and both call the same `placeMarketOrder`. A copy cannot choose the price, the builder address, the fee or the exit levels: they come from the stored signal and the server constants. Errors never expose stacks, URLs or keys (`lib/api.ts`, tested).
 - **The entry price is a server fact** — `POST /api/signals` reads the live mid itself; `SignalInput` has no `entryPrice` field and `.strict()` rejects one (tested).
-- **Honest about fills** — an immediate-or-cancel order can be sent without filling, so copies record the reference price and the UI says "at about $…"; the receipt reports `tpSlAttached: false` if the exchange ever refuses the exit levels. A copy whose order succeeded is never reported as a failure, even if writing it to SQLite fails (that case is logged loudly).
+- **Honest about fills** — an immediate-or-cancel order can be sent without filling, so copies record the reference price and the UI says "at about $…"; the receipt reports `tpSlAttached: false` if the exchange ever refuses the exit levels. A copy whose order succeeded is never reported as a failure, even if writing it to the database fails (that case is logged loudly).
+- **The database holds no secrets** — ideas, copies and the builder-approval record (addresses, a fee cap and a public transaction hash). If it is unreachable the feed says so in plain words and the Trade screen keeps working; orders never touch it.
 - **Unhappy paths** — every SDK/chain error becomes a `TradeError` with a readable message and the original error kept on `cause`; success is never reported without a transaction hash; an empty account (404 before the first deposit) is a state, not an error.
 
 ## What's next
@@ -265,7 +305,7 @@ With another day, in this order:
 
 ### Biggest risk in this submission
 
-The private key lives on the server and the two write routes (`POST /api/order`, `POST /api/signals/[id]/copy`) have no authentication, so anyone who can reach the app can spend the testnet balance. It is mitigated by keeping the app on localhost (no deployment config exists in the repo), by `server-only` modules that keep the key out of the browser, by an environment guard that refuses anything but testnet, by a per-order size cap, and by the builder-fee bound asserted immediately before signing. The real fix is wallet-based signing in the browser, so each person copies from their own account and the server never holds a key.
+One testnet private key lives on the server and signs every order, so anyone who can call the write routes of the public URL could spend the shared testnet balance. It is mitigated by a demo passcode checked before the body of those routes is read (`401` without it, reads stay open), by `server-only` modules that keep the key out of the browser (the live bundle was scanned: no key, token or code), by an environment guard that refuses anything but testnet, by a per-order size cap, and by the builder-fee bound asserted immediately before signing. A shared code is a demo gate, not authentication: the real fix is wallet-based signing in the browser, so each person copies from their own account and the server never holds a key.
 
 The same note, with the enforcement points and how each was verified, is in [`docs/SAFETY_REVIEW.md`](docs/SAFETY_REVIEW.md).
 
@@ -284,6 +324,8 @@ What the review actually caught — these are the changes I made to the generate
 - **An impure render and a cascading effect**, both flagged by React's compiler rules: `Date.now()` inside a component, and a `setState` in the polling hook's effect. The clock moved out of render and the hook now derives its reset from the URL it belongs to.
 - **Accessibility the draft ignored:** a closed bottom sheet still reachable by Tab (fixed with `inert`), toast timers left running after unmount, tap targets under 44 px, and a coin selector that forced 36 tab stops before the main button (fixed with the ARIA roving-tabindex pattern).
 - **Two honesty fixes.** A copy stores the *reference* price, not a confirmed fill, so the interface says "at about $…"; and a spec scenario used `DOGE/USD` as a market that "does not exist" — it does exist on testnet, so the scenario was corrected rather than left to pass by luck.
+- **A deploy that could not sign.** The first deployment refused every order with `FEE_BOUND`: the approval record `pnpm approve` writes was a gitignored local file, which a serverless host never has. The plan had not seen it because the local file was always there. The record moved into the database (design D7 of `deploy-demo`), and the agent's first reading of the result — "fills went up, so the order went through" — was wrong too: the extra fill was a local one. The deployed order was only counted as proof once the network log showed the `200` and the explorer link.
+- **A gate that ran too late.** Task 2.2 said to call `assertDemoAccess` as the first statement of each write route; inside `apiHandler` that would have run *after* the body was parsed. The wrapper gained a `guard` that runs before anything is read, so a refused request never reaches the schema, the SDK or the database.
 
 Two decisions I overrode after seeing the result: the size range stays out of the request schema (so every rejection quotes the same allowed range, from one place in the domain), and a list may repeat its primary action once per card — the constitution now says so explicitly instead of the code quietly breaking the old wording.
 
@@ -291,7 +333,7 @@ Two decisions I overrode after seeing the result: the size range stays out of th
 
 Each feature is an OpenSpec change (`openspec/changes/<name>/`) with a proposal, a delta spec, a design and a task list; tasks are implemented one by one, each with its own verification and commit, then the change is reviewed against `specs/constitution.md` and archived. When a design decision changes during implementation, the previous artifact is kept next to it as `*.old`. The archive folder is the record of what was planned, what was built and what changed after review.
 
-Five changes, in order: `bootstrap-app` → `decibel-testnet-connection` → `trade-screen` → `copy-trade-signals` → `polish-and-delivery`. `specs/constitution.md` holds the rules every one of them was checked against, each written as something you can actually run.
+Seven changes, in order: `bootstrap-app` → `decibel-testnet-connection` → `trade-screen` → `copy-trade-signals` → `polish-and-delivery` → `refresh-app-shell-spec` → `deploy-demo`. `specs/constitution.md` holds the rules every one of them was checked against, each written as something you can actually run.
 
 The safety review is in [`docs/SAFETY_REVIEW.md`](docs/SAFETY_REVIEW.md): every rule the brief grades, mapped to the file that enforces it and the check that was run, with the observed output.
 
@@ -305,9 +347,9 @@ The safety review is in [`docs/SAFETY_REVIEW.md`](docs/SAFETY_REVIEW.md): every 
 | `pnpm keygen` | New testnet account (prints the key once) |
 | `pnpm smoke` | Connection check: wallet, subaccount, gas, markets, BTC mid, equity |
 | `pnpm mint [amount]` | Mint test USDC (testnet faucet function) and deposit it |
-| `pnpm approve` | Approve the builder fee (one-time, idempotent) |
+| `pnpm approve` | Approve the builder fee (one-time, idempotent) and record it in the database |
 | `pnpm order:once [size] [--sell]` | Place one real market order with the builder code |
 
-Deleting `data/signals.db` resets the idea history; the file is created again on the next post.
+Deleting `data/signals.db` resets the local idea history **and** the builder-approval record; run `pnpm approve` again after that.
 
 Add `--verbose` to any script to see the underlying error.

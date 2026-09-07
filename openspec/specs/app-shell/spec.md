@@ -7,7 +7,7 @@ The application shell: a validated, testnet-only environment, the visual foundat
 ## Requirements
 
 ### Requirement: Environment is validated before the app serves anything
-The system SHALL validate its environment configuration at startup and SHALL refuse to serve any page or route while the configuration is invalid, printing one plain-language message that names the offending variable and what is expected. Required variables: `PRIVATE_KEY`, `APTOS_NODE_API_KEY`, `BUILDER_ADDRESS`, `BUILDER_FEE_BPS`, `DECIBEL_NETWORK`. Optional with defaults: `MAX_ORDER_SIZE` (0.01), `DB_PATH` (`./data/signals.db`).
+The system SHALL validate its environment configuration at startup and SHALL refuse to serve any page or route while the configuration is invalid, printing one plain-language message that names the offending variable and what is expected. Required variables: `PRIVATE_KEY`, `APTOS_NODE_API_KEY`, `BUILDER_ADDRESS`, `BUILDER_FEE_BPS`, `DECIBEL_NETWORK`. Optional with defaults: `MAX_ORDER_SIZE` (0.01), `DATABASE_URL` (`file:./data/signals.db`), `DATABASE_AUTH_TOKEN` (empty) and `DEMO_PASSCODE` (empty). `DB_PATH` is no longer read.
 
 #### Scenario: Valid configuration
 - **GIVEN** a `.env` file with all required variables, `DECIBEL_NETWORK=testnet` and `BUILDER_FEE_BPS=10`
@@ -28,6 +28,11 @@ The system SHALL validate its environment configuration at startup and SHALL ref
 - **GIVEN** `PRIVATE_KEY` is empty or absent
 - **WHEN** the app starts
 - **THEN** the app refuses to run and the message names `PRIVATE_KEY` and points to `.env.example`, without printing any secret value
+
+#### Scenario: No database configuration at all
+- **GIVEN** `DATABASE_URL` is absent
+- **WHEN** the app starts
+- **THEN** it starts normally and uses the local file `data/signals.db`, so a fresh clone needs no database setup
 
 ### Requirement: Secrets never reach the browser
 The system SHALL read secrets only in server-side modules. No variable containing a secret SHALL be exposed with a public prefix, and the client bundle SHALL NOT contain the private key or the API key.
