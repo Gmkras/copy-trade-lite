@@ -20,7 +20,7 @@
 ## 4. Documentation and the live check (≈30 min)
 
 - [x] 4.1 README: status row for the WebSocket STRETCH moves to done, describing SSE and the fallback; the API contract table gains `/api/stream`; the demo path mentions that prices move on their own; Safety gains a line stating the stream carries no account data and needs no code; project structure gains the three new files. `docs/SAFETY_REVIEW.md` gains a row for the stream's payload. Interview guide gains its section. Verify: the README states that polling is never removed.
-- [ ] 4.2 After the push and the Vercel deploy: on the live URL the price moves on its own, the account updates within about a second of an order, and an idea settles on crossing; then confirm the reconnection by watching the stream for longer than the route's window and seeing events continue. Record the deployment in the commit body.
+- [x] 4.2 After the push and the Vercel deploy: on the live URL the price moves on its own, the account updates within about a second of an order, and an idea settles on crossing; then confirm the reconnection by watching the stream for longer than the route's window and seeing events continue. Record the deployment in the commit body.
 
 ## 5. Change review
 
