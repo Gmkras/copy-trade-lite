@@ -1,0 +1,23 @@
+## 1. The hub and the stream route (≈75 min)
+
+- [ ] 1.1 Create `lib/decibel/stream.ts` per design D3: a module-level hub with `subscribe(listener) => unsubscribe`, opening `marketPrices.subscribeAll`, `userPositions.subscribeByAddr`, `accountOverview.subscribeByAddr`, `userOpenOrders.subscribeByAddr` and `userTradeHistory.subscribeByAddr` on the first listener and releasing them on the last; account messages coalesced into one event per 250 ms; price messages mapped to `{ market, mid, mark }`. Export it through `lib/decibel/index.ts`. Add `lib/decibel/stream.test.ts` with injected fake subscriptions: the first listener opens once, a second does not reopen, the last to leave calls every unsubscribe, three account messages within the window produce one event, and a listener that throws does not stop the others. Verify: `pnpm test` green, `pnpm typecheck` exits 0.
+- [ ] 1.2 Create `app/api/stream/route.ts` (Node runtime, `dynamic = "force-dynamic"`, `maxDuration` set): SSE headers, `retry: 3000` first, a `ping` comment every 15 s, `price` and `account` events from the hub, a `bye` and a clean close before the platform limit, and unsubscribe on `request.signal` abort. No `guard`: reads stay open. Verify with the dev server: `curl -N localhost:3000/api/stream` prints `retry`, then `price` events with a positive mid within seconds; `Ctrl-C` and the server log shows the hub releasing its subscriptions; a second `curl` while the first runs shows both receiving and one subscription set.
+
+## 2. The client hook (≈45 min)
+
+- [ ] 2.1 Create `hooks/useLive.ts` per design D6: opens `EventSource`, exposes `{ live, prices, accountVersion }`, keeps the latest price per market in a ref and flushes on an animation frame, sets `live` false on `error` and closes on unmount. Add `hooks/useLive.test.ts` for the pure parts (the price reducer: newest wins per market, unknown events ignored, malformed JSON ignored without throwing). Verify: `pnpm test` green.
+- [ ] 2.2 `usePoll` accepts an interval that can change without losing its data (it already re-subscribes on `intervalMs`; confirm the last good data survives an interval change and add a test if it does not). Verify: `pnpm test` green.
+
+## 3. Wiring the screens (≈60 min)
+
+- [ ] 3.1 Trade: `TradeScreen` opens `useLive`, passes the streamed price to `MarketPanel` and `TradeForm` (falling back to the poll's value), refreshes the account on each `accountVersion` change, and slows both polls to 30 s while `live`. `AccountCard` says "live" or "refreshing every 5s" where the "couldn't refresh" chip lives. Verify with agent-browser at 375 px: with the dev server the hero price changes without any `/api/price` request in the network log for at least 20 s; placing an order updates the account within about a second; blocking `/api/stream` returns the screen to polling and the label changes.
+- [ ] 3.2 Feed: `Feed` (and `FeedRail`) take the streamed prices for their cards' "now" marker and sentence, slow the feed poll to 30 s while live, and call `feed.refresh()` when a streamed price crosses an open idea's take profit or stop loss, throttled to once every 3 s per idea (design D5). The card's mode label matches the account card's wording. Verify: with an idea whose take profit is 0.01 % away, the badge appears within about a second of the crossing, and the network log shows one feed request for it, not a storm.
+
+## 4. Documentation and the live check (≈30 min)
+
+- [ ] 4.1 README: status row for the WebSocket STRETCH moves to done, describing SSE and the fallback; the API contract table gains `/api/stream`; the demo path mentions that prices move on their own; Safety gains a line stating the stream carries no account data and needs no code; project structure gains the three new files. `docs/SAFETY_REVIEW.md` gains a row for the stream's payload. Interview guide gains its section. Verify: the README states that polling is never removed.
+- [ ] 4.2 After the push and the Vercel deploy: on the live URL the price moves on its own, the account updates within about a second of an order, and an idea settles on crossing; then confirm the reconnection by watching the stream for longer than the route's window and seeing events continue. Record the deployment in the commit body.
+
+## 5. Change review
+
+- [ ] 5.1 Run the P-R review prompt on the diff against `specs/constitution.md`, with three extra questions for this change: does any stream event carry account data or a secret, can the browser write or display an outcome the server did not settle, and does every screen still work with `/api/stream` blocked. Verify: findings fixed in a separate `fix:` commit, or "no findings" recorded here.
