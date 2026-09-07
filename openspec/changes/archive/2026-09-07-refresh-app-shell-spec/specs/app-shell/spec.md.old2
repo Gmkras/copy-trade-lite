@@ -1,0 +1,30 @@
+## REMOVED Requirements
+
+### Requirement: Visual foundation follows the constitution
+**Reason**: Its only scenario, "Placeholder home", describes a screen that no longer exists — the home became the ideas feed in `copy-trade-signals`. A MODIFIED block cannot drop a scenario, so the requirement is retired and re-added below with the same guarantees and a scenario that matches the shipped app.
+**Migration**: None. Replaced in the same change by the requirement of the same name under ADDED; the design tokens, fonts and minimum sizes it guarantees are unchanged.
+
+### Requirement: Two-tab navigation
+**Reason**: Its "Route not yet built" scenario describes `/trade` as a placeholder, which stopped being true in `trade-screen`. Same reason as above: retired and re-added with the surviving scenario plus one that states what the tabs do today.
+**Migration**: None. Replaced in the same change by the requirement of the same name under ADDED; the two-tab bottom navigation and the yellow active tab are unchanged.
+
+## ADDED Requirements
+
+### Requirement: Visual foundation follows the constitution
+The UI SHALL use a black background (`#0B0B0C`), Decibel yellow (`#F5C400`) as the only strong accent, green (`#22C55E`) and red (`#EF4444`) reserved for gains/losses and direction, Inter for body text, and Space Grotesk for headlines and large numbers. Body text SHALL be at least 16 px and tap targets at least 44 px.
+
+#### Scenario: Home screen
+- **WHEN** a user opens `/` at a 375 px viewport
+- **THEN** the ideas feed renders on a black background with yellow as the only strong accent, and green and red used only for direction and profit or loss
+
+### Requirement: Two-tab navigation
+The app SHALL show a bottom navigation bar with exactly two tabs, "Feed" (`/`) and "Trade" (`/trade`), on every screen. The active tab SHALL be highlighted in yellow.
+
+#### Scenario: Switching tabs
+- **GIVEN** the user is on `/`
+- **WHEN** they tap "Trade"
+- **THEN** the URL changes to `/trade`, the Trade tab is highlighted, and the Feed tab is not
+
+#### Scenario: Both tabs lead to a built screen
+- **WHEN** the user opens each tab in turn
+- **THEN** `/` shows the ideas feed and `/trade` shows the trade screen; neither is a placeholder and neither is a 404

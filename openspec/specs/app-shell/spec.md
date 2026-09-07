@@ -50,12 +50,16 @@ The repository SHALL include an `.env.example` file listing every variable the a
 - **WHEN** the developer copies `.env.example` to `.env` and fills in the three secrets following the comments
 - **THEN** `pnpm dev` starts without further configuration
 
-### Requirement: Visual foundation follows the constitution
+### Requirement: Visual foundation holds on every screen
 The UI SHALL use a black background (`#0B0B0C`), Decibel yellow (`#F5C400`) as the only strong accent, green (`#22C55E`) and red (`#EF4444`) reserved for gains/losses and direction, Inter for body text, and Space Grotesk for headlines and large numbers. Body text SHALL be at least 16 px and tap targets at least 44 px.
 
-#### Scenario: Placeholder home
+#### Scenario: Home screen
 - **WHEN** a user opens `/` at a 375 px viewport
-- **THEN** the page shows a black background with a yellow "Copy-Trade Lite" headline in Space Grotesk and no other saturated color
+- **THEN** the ideas feed renders on a black background with yellow as the only strong accent, and green and red used only for direction and profit or loss
+
+#### Scenario: Every screen keeps the palette
+- **WHEN** `/trade` and `/signals/{id}` are inspected
+- **THEN** each uses the same background, accent and type scale, with no other saturated color
 
 ### Requirement: Base components are available and consistent
 The system SHALL provide four reusable components: a full-width primary button with a pending state, a card surface, a bottom sheet that opens over the current screen and closes with a tap outside or a close control, and a toast that shows a short message and dismisses itself.
@@ -74,18 +78,17 @@ The system SHALL provide four reusable components: a full-width primary button w
 - **WHEN** a toast is shown
 - **THEN** it is readable for at least 4 seconds and then disappears on its own
 
-### Requirement: Two-tab navigation
-The app SHALL show a bottom navigation bar with exactly two tabs, "Feed" (`/`) and "Trade" (`/trade`), on every screen. The active tab SHALL be highlighted in yellow.
+### Requirement: Two-tab navigation between built screens
+The app SHALL show a bottom navigation bar with exactly two tabs, "Feed" (`/`) and "Trade" (`/trade`), on every screen. The active tab SHALL be highlighted in yellow, and both tabs SHALL lead to a working screen.
 
 #### Scenario: Switching tabs
 - **GIVEN** the user is on `/`
 - **WHEN** they tap "Trade"
 - **THEN** the URL changes to `/trade`, the Trade tab is highlighted, and the Feed tab is not
 
-#### Scenario: Route not yet built
-- **GIVEN** the Trade screen has not been implemented yet
-- **WHEN** the user opens `/trade`
-- **THEN** a placeholder page states in plain language that this screen is coming, instead of a 404
+#### Scenario: Both tabs lead to a built screen
+- **WHEN** the user opens each tab in turn
+- **THEN** `/` shows the ideas feed and `/trade` shows the trade screen; neither is a placeholder and neither is a 404
 
 ### Requirement: Project is 100% TypeScript with strict checks
 All source files SHALL be TypeScript (`.ts`/`.tsx`) compiled with `strict: true`, and the repository SHALL provide `typecheck`, `lint`, `test`, `dev` and `build` scripts.

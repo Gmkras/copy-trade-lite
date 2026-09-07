@@ -1,0 +1,32 @@
+## Context
+
+`openspec/specs/app-shell/spec.md` is the living description of the shell. Two of its scenarios were written when the screens they describe were placeholders; both were replaced by later changes (`trade-screen`, `copy-trade-signals`) whose deltas touched their own capabilities and left `app-shell` untouched. See proposal.md for why this matters.
+
+## Goals / Non-Goals
+
+**Goals:**
+- The main spec describes the shipped app, so a reader can trust it.
+- Nothing else in `app-shell` moves.
+
+**Non-Goals:**
+- Any code change; the behaviour is already correct.
+
+## Decisions
+
+### D1. MODIFIED, not REMOVED + ADDED
+Both requirements keep their name and their intent; only one scenario each is out of date. A MODIFIED block carries the full requirement — description plus every surviving scenario — so the merge cannot silently drop "Switching tabs" from the navigation requirement. Alternative: remove the stale scenarios and add new ones as a separate requirement — rejected, it would split one guarantee across two requirements for no reason.
+
+### D2. Wording that will not go stale again
+The replacements describe *properties* rather than a moment in the project's life: "the ideas feed renders on a black background with yellow as the only strong accent" and "neither is a placeholder and neither is a 404". A scenario phrased as "the screen has not been implemented yet" is guaranteed to expire; one phrased as an invariant is not.
+
+## Risks / Trade-offs
+
+- [The merge drops the surviving scenario] → the archive step compares requirement and scenario counts before moving anything; expected result is 11 requirements and 24 scenarios, unchanged.
+
+## Migration Plan
+
+None.
+
+## Open Questions
+
+None.
