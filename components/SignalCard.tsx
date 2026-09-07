@@ -38,14 +38,6 @@ export function SignalCard({ signal, stats, now }: SignalCardProps) {
             {stats ? ` · ${stats.ideas} ${stats.ideas === 1 ? "idea" : "ideas"} · ${stats.copies} ${stats.copies === 1 ? "copy" : "copies"}` : ""}
           </p>
         </div>
-        <span
-          className={[
-            "shrink-0 rounded-full border px-2 py-0.5 text-xs",
-            signal.expired ? "border-line text-muted" : "border-line text-text",
-          ].join(" ")}
-        >
-          {signal.expired ? "expired" : `live · ${timeLeftLabel(signal, now)}`}
-        </span>
       </div>
 
       <p className="text-sm text-muted">
@@ -60,7 +52,13 @@ export function SignalCard({ signal, stats, now }: SignalCardProps) {
         <span className="rounded-full border border-down/40 px-2 py-0.5 text-down">
           Stop loss {up ? "−" : "+"}{amount(signal.slPct)}%
         </span>
-        <span className="ml-auto text-muted">copied {signal.copyCount}×</span>
+      </div>
+
+      <div className="flex items-center justify-between text-sm text-muted">
+        <span>copied {signal.copyCount}×</span>
+        <span className={signal.expired ? "" : "text-text"}>
+          {signal.expired ? "expired" : `live · ${timeLeftLabel(signal, now)}`}
+        </span>
       </div>
 
       <Link

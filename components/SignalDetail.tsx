@@ -83,7 +83,12 @@ export function SignalDetail({ initialSignal, initialCopies }: SignalDetailProps
                 <span>
                   <span className="font-display font-medium">{c.copier}</span> · {amount(c.size)} {signal.symbol} at about ${money(c.fillPrice, digits)}
                 </span>
-                <a href={`https://explorer.aptoslabs.com/txn/${c.txHash}?network=testnet`} target="_blank" rel="noreferrer" className="text-yellow underline underline-offset-4">
+                <a
+                  href={`https://explorer.aptoslabs.com/txn/${c.txHash}?network=testnet`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="-my-2 inline-flex min-h-11 shrink-0 items-center pl-3 text-yellow underline underline-offset-4"
+                >
                   {timeAgo(c.createdAt, now)}
                 </a>
               </li>

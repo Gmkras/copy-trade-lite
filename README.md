@@ -93,7 +93,7 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
    ✓ play money ready
    ```
 
-5. Approve the builder fee once (step 1 of builder codes; safe to re-run):
+5. Approve the builder fee (step 1 of builder codes; safe to re-run). A fresh clone always needs this, even if the wallet approved before: the approval lives on chain, but the local record the app checks before signing is in `data/`, which is not in version control. Skipping it stops the next step with "The builder fee has not been approved yet. Run `pnpm approve` once before trading."
 
    ```bash
    pnpm approve
@@ -263,11 +263,37 @@ With another day, in this order:
 3. **WebSocket** price and position updates replacing the polling, keeping polling as the fallback.
 4. **Wallet-based signing** so each person copies from their own wallet instead of the shared server key — the change that removes the biggest risk below.
 
-Biggest risk in this design: the private key on the server behind unauthenticated write routes (`/api/order`, `/api/signals/[id]/copy`). Mitigation: server-only modules, startup validation, the size cap, the fee bound asserted last, and keeping the app on localhost. The next step would be wallet-based signing in the browser.
+### Biggest risk in this submission
+
+The private key lives on the server and the two write routes (`POST /api/order`, `POST /api/signals/[id]/copy`) have no authentication, so anyone who can reach the app can spend the testnet balance. It is mitigated by keeping the app on localhost (no deployment config exists in the repo), by `server-only` modules that keep the key out of the browser, by an environment guard that refuses anything but testnet, by a per-order size cap, and by the builder-fee bound asserted immediately before signing. The real fix is wallet-based signing in the browser, so each person copies from their own account and the server never holds a key.
+
+The same note, with the enforcement points and how each was verified, is in [`docs/SAFETY_REVIEW.md`](docs/SAFETY_REVIEW.md).
+
+
+## AI-generated vs. what I changed after reviewing it
+
+Nearly all of the code here was drafted by an AI agent working against written specs, and then reviewed line by line before each commit. The repository carries the evidence: `openspec/changes/archive/` holds what was planned **before** any code existed, the `*.old` files next to each design hold the versions that reality forced me to correct, and the review pass after every change is a separate `fix:` commit.
+
+What the review actually caught — these are the changes I made to the generated code, not a list of what it wrote:
+
+- **A regex that would have placed a second real order.** The copy route retried without take-profit/stop-loss when the chain "blamed the trigger prices", detected with `/tp|sl|trigger/`. `tp` matches inside `http`, and SDK errors carry URLs, so almost any rejection would have triggered a second order. Fixed with patterns anchored to whole Move identifiers, plus a test whose failing case is literally "the message contains a URL".
+- **The same class of bug, earlier.** `humanizeSdkError` classified an error as "API key rejected" because it found `401` **inside a hex package address**. Fixed with word boundaries and a Move-abort reason extractor. Two instances of the same mistake is why I now distrust substring matching over free text.
+- **A wrong assumption about builder codes.** The plan said `BUILDER_ADDRESS` could be any address I control. The chain answered `EBUILDER_SUBACCOUNT_NOT_FOUND`: it must be a Decibel *subaccount*. `.env.example`, the README and a warning in `pnpm smoke` were updated.
+- **A dependency that would have broken a fresh clone.** `better-sqlite3` has no prebuilt binary for Node 24 here and `node-gyp` needs a C++ toolchain. Replaced with Node's built-in `node:sqlite`, verified inside a Turbopack route handler before writing the persistence layer.
+- **Markets nobody could trade.** `MAX_ORDER_SIZE` is one cap in base units, so coins whose minimum order is larger (ADA, WLFI) showed an impossible range like "between 5 and 0.01 ADA". The list now only offers what this app can actually trade.
+- **An impure render and a cascading effect**, both flagged by React's compiler rules: `Date.now()` inside a component, and a `setState` in the polling hook's effect. The clock moved out of render and the hook now derives its reset from the URL it belongs to.
+- **Accessibility the draft ignored:** a closed bottom sheet still reachable by Tab (fixed with `inert`), toast timers left running after unmount, tap targets under 44 px, and a coin selector that forced 36 tab stops before the main button (fixed with the ARIA roving-tabindex pattern).
+- **Two honesty fixes.** A copy stores the *reference* price, not a confirmed fill, so the interface says "at about $…"; and a spec scenario used `DOGE/USD` as a market that "does not exist" — it does exist on testnet, so the scenario was corrected rather than left to pass by luck.
+
+Two decisions I overrode after seeing the result: the size range stays out of the request schema (so every rejection quotes the same allowed range, from one place in the domain), and a list may repeat its primary action once per card — the constitution now says so explicitly instead of the code quietly breaking the old wording.
 
 ## Development process
 
 Each feature is an OpenSpec change (`openspec/changes/<name>/`) with a proposal, a delta spec, a design and a task list; tasks are implemented one by one, each with its own verification and commit, then the change is reviewed against `specs/constitution.md` and archived. When a design decision changes during implementation, the previous artifact is kept next to it as `*.old`. The archive folder is the record of what was planned, what was built and what changed after review.
+
+Five changes, in order: `bootstrap-app` → `decibel-testnet-connection` → `trade-screen` → `copy-trade-signals` → `polish-and-delivery`. `specs/constitution.md` holds the rules every one of them was checked against, each written as something you can actually run.
+
+The safety review is in [`docs/SAFETY_REVIEW.md`](docs/SAFETY_REVIEW.md): every rule the brief grades, mapped to the file that enforces it and the check that was run, with the observed output.
 
 ## Scripts
 

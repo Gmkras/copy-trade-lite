@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   // Next 16 rewrites CLAUDE.md / AGENTS.md with its own agent rules on `next dev`.
   // Our CLAUDE.md is the project constitution and must not be touched.
   agentRules: false,
+  // The dev-tools badge floats over the bottom navigation at 375 px. The error
+  // overlay still appears; only the indicator is hidden.
+  devIndicators: false,
 };
 
 export default nextConfig;

@@ -7,7 +7,10 @@ type SideToggleProps = {
   onChange: (side: OrderSide) => void;
 };
 
-/** Two huge buttons: Up or Down. Direction colors are the only place green/red appear besides PnL. */
+/**
+ * Two huge buttons: Up or Down. Direction colors are the only place green/red
+ * appear besides PnL. Keyboard: one tab stop, arrows switch side (ARIA radiogroup).
+ */
 export function SideToggle({ value, onChange }: SideToggleProps) {
   const options: { side: OrderSide; label: string; hint: string; active: string }[] = [
     { side: "up", label: "Up ↑", hint: "I think the price goes up", active: "border-up text-up" },
@@ -23,7 +26,14 @@ export function SideToggle({ value, onChange }: SideToggleProps) {
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => onChange(option.side)}
+            onKeyDown={(event) => {
+              if (["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown"].includes(event.key)) {
+                event.preventDefault();
+                onChange(value === "up" ? "down" : "up");
+              }
+            }}
             className={[
               "flex min-h-20 flex-col items-center justify-center rounded-card border-2 bg-surface px-3 py-3 transition-colors",
               active ? option.active : "border-line text-muted hover:text-text",

@@ -21,7 +21,7 @@ export default async function SignalPage({ params }: { params: Promise<{ id: str
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-6">
-      <Link href="/" className="text-sm text-muted">
+      <Link href="/" className="inline-flex min-h-11 items-center self-start pr-3 text-sm text-muted hover:text-text">
         ← All ideas
       </Link>
       <SignalDetail initialSignal={data.signal} initialCopies={data.copies} />

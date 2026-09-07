@@ -4,7 +4,7 @@ Non-negotiable principles. Every spec, plan, task, commit and review is checked 
 
 ## 1. Product principles
 
-- **P1. A smart 12-year-old can use it.** Every screen has exactly one primary action (one big yellow button). Check: count the yellow buttons on a screen; the answer is 1.
+- **P1. A smart 12-year-old can use it.** Every screen has exactly one *kind* of primary action, in yellow. A list may repeat that same action once per item (each idea card carries the Copy that opens it); everything else on the screen is secondary. Check: count the distinct yellow actions on a screen; the answer is 1.
 - **P2. Plain words, never exchange jargon.** "Up / Down", "How much?", "Copy this trade", "Play money (testnet)". Check: no "long/short", "IOC", "bps", "margin", "reduce-only" visible in the UI.
 - **P3. Every number has context.** "1 BTC = $64,120", "≈ $64 of play money". Check: no bare number without unit or comparison.
 - **P4. Social-trading feel with three screens.** Feed of ideas with Copy, Trade, Signal detail on a chart. Trader profile and leaderboard are STRETCH only. Check: the bottom nav has two tabs until STRETCH lands.
