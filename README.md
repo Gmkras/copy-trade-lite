@@ -50,6 +50,8 @@ Proof on the Aptos testnet explorer: first order from the script `0x5f433998292c
 
 > **Play names, one account.** Authors and copiers are display names typed in the form; every order is signed with the single testnet key in `.env`. There is no login — that is out of scope for this take-home and is called out under [Safety](#safety).
 
+> **Not part of the product: `/learn`.** There is a page at `/learn` that answers three questions — stack versus heap, what a stack overflow is, and how TCP differs from UDP — using this app's own code, because it happens to contain all three. It **serves no tier of the brief**; it is separate material. Nothing links to it and it has no navigation entry, so it is reachable only by typing the address; a test asserts the navigation still carries exactly its two tabs. The Rust on that page is **quoted for comparison and never compiled** — the repository holds no `.rs` file and gained no dependency for it.
+
 ## Prerequisites
 
 - **Node.js 22+** (built on 24) and **pnpm 12** (`npm i -g pnpm`)
@@ -272,7 +274,7 @@ pnpm build       # production build; must succeed
 ## Project structure
 
 ```
-app/                    Next.js App Router: layout, feed (/), /trade, /signals/[id]
+app/                    Next.js App Router: layout, feed (/), /trade, /signals/[id], /learn (unlinked, not part of the product)
 app/api/                markets, tickers, price/[market], stats/[market], candles/[market]?range=, account, stream (SSE), order, signals, signals/[id], signals/[id]/copy — every route but the stream goes through apiHandler
 components/             shell (BigButton, Card, Sheet, Toast, AppNav — bottom bar on phones, top bar on wide screens), trading (CoinPills with each coin's price and 24h change, MarketPanel with the price hero, MarketStatsBar and chart, TradeForm as the order ticket, SideToggle, SizePicker, AccountCard, PositionsPanel with the desk's tabs, AccountRows shared by both, TradeScreen laying the desk grid and the phone panes out), signals (Feed, SignalCard, IdeaStrip fallback, PostIdeaSheet, SignalDetail, CopyPanel, DetailRail / FeedRail for the wide second column), MarketChart / MarketChartInner (lightweight-charts: toolbar above the canvas, crosshair OHLC, volume, bar countdown, level names in a caption rather than on the price axis)
 hooks/useMediaQuery.ts  the one breakpoint hook (useSyncExternalStore, server snapshot false) for the few places CSS cannot decide
@@ -299,6 +301,8 @@ lib/decibel/account.ts  one-call account state with per-position PnL (tests)
 lib/decibel/markets.ts  tradable markets (human units), live price, the coin strip's tickers and one market's 24-hour figures — the two `getAll` sources key their rows differently (contexts by name, prices by address), so the join is pure and tested
 lib/decibel/errors.ts   TradeError + plain-language mapping of SDK/chain errors
 lib/decibel/index.ts    server-only gate: the only import path for app code
+lib/learn/              the /learn page's step sequence, quiz and the arithmetic behind its three interactives — pure, so the simulations are tested without a browser (tests)
+components/learn/       MemoryVisualizer, DepthSlider, PacketRace, CodeCompare, Quiz — the only client code on that page
 scripts/                keygen, smoke, mint-usdc, approve-builder, order-once (tsx)
 specs/constitution.md   Non-negotiable rules with executable checks
 openspec/               SDD artifacts: config, active changes, archive (process evidence; *.old = previous versions)
