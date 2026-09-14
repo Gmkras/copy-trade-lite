@@ -6,6 +6,13 @@ import { useCallback, useSyncExternalStore } from "react";
 export const WIDE = "(min-width: 1024px)";
 
 /**
+ * Where the Trade screen becomes a viewport-height trading desk: wide enough
+ * for two columns AND tall enough that a fixed-height grid does not clip
+ * (design D9). Must stay in step with the `desk` variant in app/globals.css.
+ */
+export const DESK = "(min-width: 1024px) and (min-height: 700px)";
+
+/**
  * Whether a CSS media query matches, safe for server rendering.
  *
  * The server snapshot is always `false`, so the server and the first client

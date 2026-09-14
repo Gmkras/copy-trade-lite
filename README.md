@@ -28,7 +28,7 @@ The demo path is the same as [step 7 below](#run-it-locally): Trade → Buy → 
 | SHOULD 6 | Signal on a chart with entry / take-profit / stop-loss lines | ✅ Done (`copy-trade-signals`, `signal-visible-in-feed`, `trade-chart`) — every feed card draws its coin's candles with the three lines and the live price; `/signals/[id]` is the full-size chart with the copies; every chart has the same toolbar (chart type, range 1h · 4h · 1d · 1w, zoom) |
 | SHOULD 7 | One-click copy from the copier's own account, builder code attached | ✅ Done (`copy-trade-signals`) — "Copy this trade" |
 | SHOULD 8 | Persisted signal history with per-author track record | ✅ Done (`copy-trade-signals`) — libSQL: a local file, or Turso when deployed |
-| STRETCH | Mobile-friendly layout | ✅ Done — designed at 375 px first, verified in a real browser |
+| STRETCH | Mobile-friendly layout | ✅ Done — designed at 375 px first, verified by measurement in a real browser. `trading-layout-optimization` added a **trading-desk layout** from 1024 × 700: the chart fills the height and is the largest element on screen (29 % of a 1440 × 900 viewport, up from ~11 %), with Positions / Open orders / Fills as tabs beneath it and the page not scrolling at all. Below that size the chart and the order ticket become **two panes**, Trade and Chart, because the day's figures and the chart's legend no longer leave room for both in one column at 375 × 812 |
 | Polish | Desktop layout | ✅ Done (`desktop-layout`) — from 1024 px the feed shows the list beside the open idea and Trade becomes a trading desk (coins on top, chart, order ticket, account); the nav moves from the bottom bar to a top bar |
 | STRETCH | Outcome marking (hit TP / hit SL / expired) with a per-author record | ✅ Done (`signal-outcomes`) — every idea is settled from its market's candles and the feed shows "✅ It worked", "❌ It didn't work" or "⏱ Time ran out", plus "1 of 2 worked" per author |
 | STRETCH | Real-time updates (WebSocket) | ✅ Done (`live-updates`) — `GET /api/stream` forwards the SDK's server-side subscriptions over SSE: the price moves on its own, the account updates within about a second of an order, and an idea settles the moment it crosses. **Polling is never removed**: it slows to a 30 s heartbeat while the stream is connected and takes over the instant it drops, and each screen says which mode it is in |
@@ -236,6 +236,8 @@ The app runs on any Node host. It was deployed on Vercel with a Turso database, 
 |---|---|
 | `curl localhost:3000/api/markets` | `ok:true`, BTC/USD first with `minSize 0.00002`; only markets whose minimum fits under `MAX_ORDER_SIZE` are listed |
 | `curl localhost:3000/api/price/FOO%2FUSD` | 422 `UNKNOWN_MARKET` |
+| `curl localhost:3000/api/tickers` | 200 with one row per market in `/api/markets` (36 here), BTC/USD first, each `{market, symbol, mid, changePct24h}`; a market the exchange cannot quote keeps its row with `null` rather than disappearing. Three upstream calls whatever the market count — it answers in about the same time as `/api/price` for a single market |
+| `curl localhost:3000/api/stats/BTC%2FUSD` | 200 with `changePct24h`, `high24h`, `low24h`, `volume24h`, `openInterest`, `fundingRateBps`, `isFundingPositive`, `fundingPeriodS`, and `high24h ≥ low24h`; unknown market → 422 `UNKNOWN_MARKET` before any price or candle call. A figure the exchange does not provide is `null` (shown as "—"), never 0 |
 | `curl -N localhost:3000/api/stream` | a `retry:` line, then `hello`, then `price` events with a market name and a positive mid as they happen, `account` events with an **empty** payload, and a `bye` before the window closes; needs no demo code, like every read route |
 | `curl "localhost:3000/api/candles/BTC%2FUSD?range=1w"` | 200 with about 168 ascending hourly candles and `interval: "1h"`; `range=1h` → ~60 one-minute candles; `range=3y` → 422 "Choose a range of 1h, 4h, 1d or 1w."; unknown market → 422 `UNKNOWN_MARKET` |
 | `curl -X POST localhost:3000/api/order -H "content-type: application/json" -d '{"market":"BTC/USD","side":"up","size":"abc"}'` | 422 `INVALID_SIZE` with the allowed range |
@@ -271,12 +273,12 @@ pnpm build       # production build; must succeed
 
 ```
 app/                    Next.js App Router: layout, feed (/), /trade, /signals/[id]
-app/api/                markets, price/[market], candles/[market]?range=, account, stream (SSE), order, signals, signals/[id], signals/[id]/copy — every route but the stream goes through apiHandler
-components/             shell (BigButton, Card, Sheet, Toast, AppNav — bottom bar on phones, top bar on wide screens), trading (CoinPills, MarketPanel with the price hero and chart, TradeForm as the order ticket, SideToggle, SizePicker, AccountCard, TradeScreen laying the four panels out), signals (Feed, SignalCard, IdeaStrip fallback, PostIdeaSheet, SignalDetail, CopyPanel, DetailRail / FeedRail for the wide second column), MarketChart / MarketChartInner (lightweight-charts with the type · range · zoom toolbar, used by all three)
+app/api/                markets, tickers, price/[market], stats/[market], candles/[market]?range=, account, stream (SSE), order, signals, signals/[id], signals/[id]/copy — every route but the stream goes through apiHandler
+components/             shell (BigButton, Card, Sheet, Toast, AppNav — bottom bar on phones, top bar on wide screens), trading (CoinPills with each coin's price and 24h change, MarketPanel with the price hero, MarketStatsBar and chart, TradeForm as the order ticket, SideToggle, SizePicker, AccountCard, PositionsPanel with the desk's tabs, AccountRows shared by both, TradeScreen laying the desk grid and the phone panes out), signals (Feed, SignalCard, IdeaStrip fallback, PostIdeaSheet, SignalDetail, CopyPanel, DetailRail / FeedRail for the wide second column), MarketChart / MarketChartInner (lightweight-charts: toolbar above the canvas, crosshair OHLC, volume, bar countdown, level names in a caption rather than on the price axis)
 hooks/useMediaQuery.ts  the one breakpoint hook (useSyncExternalStore, server snapshot false) for the few places CSS cannot decide
 hooks/useLive.ts        the SSE client: live prices per market and an account nudge, with a grace period across reconnects (tests)
 lib/decibel/stream.ts   one hub per process over the SDK's subscriptions, reference-counted, account events coalesced (tests)
-lib/charts.ts           range → candle interval, range change, plain-language range labels (tests)
+lib/charts.ts           range → candle interval, range change, plain-language range labels, the bar countdown, and splitLevels: which price levels belong on the scale and which would flatten the candles (tests)
 hooks/usePoll.ts        polling with last-good-data + stale flag, fetch/post envelope helpers (tests)
 hooks/useDemoPasscode.ts  sends the stored demo code, asks for it on a 401 and retries (PasscodeSheet)
 lib/auth.ts             assertDemoAccess: constant-time header check, no-op when DEMO_PASSCODE is empty (tests)
@@ -294,7 +296,7 @@ lib/decibel/client.ts   SDK clients built once from env (TESTNET_CONFIG only), w
 lib/decibel/units.ts    chain-unit math: tick/lot rounding, size bounds (tests)
 lib/decibel/orders.ts   approveBuilderFee (record in the database), placeMarketOrder with the fee bound asserted last (tests)
 lib/decibel/account.ts  one-call account state with per-position PnL (tests)
-lib/decibel/markets.ts  tradable markets (human units) and live price
+lib/decibel/markets.ts  tradable markets (human units), live price, the coin strip's tickers and one market's 24-hour figures — the two `getAll` sources key their rows differently (contexts by name, prices by address), so the join is pure and tested
 lib/decibel/errors.ts   TradeError + plain-language mapping of SDK/chain errors
 lib/decibel/index.ts    server-only gate: the only import path for app code
 scripts/                keygen, smoke, mint-usdc, approve-builder, order-once (tsx)
@@ -325,20 +327,13 @@ Graded explicitly by the brief; enforced in code, not by convention:
 
 With another day, I would prioritize the following improvements, in this order:
 
-1. **Make the chart full-screen and add a bottom tabbed panel for Positions / Orders / Fills** so the Trade screen behaves more like a focused trading workspace without losing access to account activity.
-2. **Add a 24-hour market stats bar** with price change, high, low and volume for faster market context at a glance.
-3. **Draw the current position entry price directly on the Trade chart** so users can immediately compare the live market price with where their position was opened.
-4. **Improve the chart toolbar** with a top-aligned control row, OHLC values on crosshair hover, and a countdown to the current candle close.
-5. **Fix overlapping chart labels and the clipped `u copied` text** so all chart annotations remain readable at every supported viewport size.
-6. **Bound chart autoscaling when stop-loss levels are extremely far from price** so an outlier SL cannot compress the candles into an unreadable area.
-7. **Show both price and percentage in each market pill and strengthen the horizontal scroll affordance with a fade gradient** so users can scan markets faster and understand that more items are available off-screen.
-8. **Add volume to the chart** to provide basic confirmation of price movement without adding unnecessary complexity.
-9. **Simplify the controls inside feed cards** so the signal itself stays visually dominant and secondary actions create less noise.
-10. **Increase the mobile chart height to 40vh** to give price action more room while keeping the primary trade action practical on smaller screens.
+1. **Stop rebuilding the chart on every refresh.** `MarketChartInner` creates the chart inside an effect that depends on `candles`, so each 15 s poll destroys and recreates it. Measured on `/trade` at 1440 × 900: over 120 s (8 polls) the page produced 2 long tasks of **50 ms and 59 ms**, so roughly a quarter of refreshes cost a visible hitch. The fix is to create the chart once and call `series.setData` / `series.update` afterwards. It was deliberately left out of `trading-layout-optimization` — that change is about layout, and this touches the one component the feed, the detail and the Trade screen all share.
+2. **A leaderboard page** from the author record already computed (`ideas`, `copies`, `settled`, `won`), with a third navigation tab.
+3. **Real tests for the screens.** All 191 tests target `lib/`; the components are verified by opening them in a browser and measuring. A Playwright pass over the demo path would be worth more than unit tests of individual components.
+4. **Name the units of 24-hour volume and open interest.** The SDK documents neither, so `/api/stats` passes the numbers through and the interface prints them without a unit rather than guessing at "$".
 
-Beyond that one-day polish pass, the next larger product changes would still be:
+Beyond that, the next larger product changes would be:
 
-- **A leaderboard page** from the author record already computed (`ideas`, `copies`, `settled`, `won`), with a third navigation tab.
 - **Wallet-based signing** so each person copies from their own wallet instead of the shared server key — the change that removes the biggest risk below.
 - **A shared stream across instances**: today each serverless instance holds its own subscriptions, which is right for a demo and would become a broker if this ever had real traffic.
 

@@ -46,7 +46,10 @@ export function TradeForm({ market, mid, onOrderPlaced }: TradeFormProps) {
   );
 
   const canSubmit = sizeValid && mid !== null && !pending;
-  const verb = side === "up" ? "Buy" : "Sell";
+  // The screen speaks Up and Down everywhere else; "Buy"/"Sell" was the one
+  // place exchange words leaked back into it (constitution P2).
+  const verb = side === "up" ? "Go Up" : "Go Down";
+  const direction = side === "up" ? "Up" : "Down";
   const label =
     sizeValid && mid !== null
       ? `${verb} ${amount(size)} ${market.symbol} ≈ $${money(size * mid)}`
@@ -60,7 +63,7 @@ export function TradeForm({ market, mid, onOrderPlaced }: TradeFormProps) {
     setPending(true);
     try {
       const receipt = await run((passcode) => fetchOrder({ market: market.name, side, size }, passcode));
-      show(`Order sent: ${verb.toLowerCase()} ${amount(receipt.size)} ${market.symbol} at about $${money(receipt.referencePrice)}`, {
+      show(`Order sent: ${direction} ${amount(receipt.size)} ${market.symbol} at about $${money(receipt.referencePrice)}`, {
         variant: "success",
         link: { href: receipt.explorerUrl, label: "See it on the explorer" },
       });

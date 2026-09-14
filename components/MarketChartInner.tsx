@@ -22,7 +22,13 @@ import { countdownLabel, rangeToInterval, splitLevels } from "@/lib/charts";
 import { money } from "@/lib/format";
 import type { Candle, CandleRange } from "@/lib/schemas";
 
-export type ChartLine = { price: number; label: string; color: string };
+export type ChartLine = {
+  price: number;
+  label: string;
+  color: string;
+  /** Always keep this level on the price scale, however far it sits (design D5). */
+  pinned?: boolean;
+};
 export type ChartMarker = { time: number; label: string };
 export type ChartType = "candles" | "line" | "area";
 
@@ -39,6 +45,12 @@ export type MarketChartProps = {
   /** Smaller toolbar chips (default on cards); the Trade screen uses it to stay above the fold. */
   compact?: boolean;
   height?: number;
+  /**
+   * Take the height of whatever contains this chart instead of a fixed number.
+   * The wide Trade layout uses it so the chart grows into the space left over,
+   * measured rather than calculated (design D9).
+   */
+  fill?: boolean;
   /** Decimals on the price axis (0 for BTC-like prices, 2 for small ones). */
   precision?: number;
 };
@@ -93,6 +105,7 @@ export default function MarketChartInner({
   loading = false,
   compact = variant === "card",
   height = 260,
+  fill = false,
   precision = 2,
 }: MarketChartProps) {
   const container = useRef<HTMLDivElement | null>(null);
@@ -139,7 +152,9 @@ export default function MarketChartInner({
 
     const chart = createChart(el, {
       width: el.clientWidth,
-      height,
+      // When filling, the container's own height is the answer; the observer
+      // below keeps it there as the window changes.
+      height: fill ? el.clientHeight : height,
       layout: {
         background: { type: ColorType.Solid, color: COLORS.bg },
         textColor: COLORS.muted,
@@ -287,7 +302,7 @@ export default function MarketChartInner({
     });
 
     const observer = new ResizeObserver(() => {
-      chart.applyOptions({ width: el.clientWidth });
+      chart.applyOptions({ width: el.clientWidth, ...(fill ? { height: el.clientHeight } : {}) });
     });
     observer.observe(el);
 
@@ -296,7 +311,7 @@ export default function MarketChartInner({
       chart.remove();
       chartRef.current = null;
     };
-  }, [candles, levels, markers, height, precision, variant, type]);
+  }, [candles, levels, markers, height, fill, precision, variant, type]);
 
   // Zoom acts on the logical range, anchored on the most recent bars (design D3).
   function zoom(factor: number) {
@@ -318,7 +333,7 @@ export default function MarketChartInner({
     ].join(" ");
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={["flex flex-col gap-1.5", fill ? "h-full min-h-0" : ""].join(" ")}>
       {/* Controls above the canvas, as every terminal puts them: below the
           chart the time axis is no longer the lowest thing you read. */}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -344,7 +359,15 @@ export default function MarketChartInner({
         </div>
         {countdown ? (
           <span className="whitespace-nowrap text-xs text-muted" aria-label="Time until this bar closes">
-            bar closes in <span className="tabular-nums text-text">{countdown}</span>
+            {countdown === "closing" ? (
+              // The bar's close has passed and the next poll has not landed;
+              // "bar closes in closing" is not a sentence.
+              <span className="text-text">bar closing</span>
+            ) : (
+              <>
+                bar closes in <span className="tabular-nums text-text">{countdown}</span>
+              </>
+            )}
           </span>
         ) : null}
         {full ? (
@@ -362,11 +385,11 @@ export default function MarketChartInner({
         ) : null}
       </div>
 
-      <div className="relative">
+      <div className={["relative", fill ? "min-h-0 flex-1" : ""].join(" ")}>
         <div
           ref={container}
-          className={["w-full transition-opacity", loading ? "opacity-60" : ""].join(" ")}
-          style={{ height }}
+          className={["w-full transition-opacity", fill ? "h-full" : "", loading ? "opacity-60" : ""].join(" ")}
+          style={fill ? undefined : { height }}
           aria-label="Price chart"
           aria-busy={loading || undefined}
           role="img"
@@ -396,9 +419,18 @@ export default function MarketChartInner({
           Both used to be drawn inside the plot, where they collided with the
           axis and clipped at the edges (design D3, D4). */}
       {lines.length > 0 || markers.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+        // One scrolling row on a phone rather than a wrapping block: wrapped,
+        // an entry plus a liquidation took two lines off a 812 px screen and
+        // helped push the yellow button out of sight.
+        <div
+          className="flex items-center gap-x-4 overflow-x-auto whitespace-nowrap pb-0.5 text-sm lg:flex-wrap lg:gap-y-1 lg:overflow-x-visible"
+          style={{
+            maskImage: "linear-gradient(to right, black calc(100% - 20px), transparent)",
+            WebkitMaskImage: "linear-gradient(to right, black calc(100% - 20px), transparent)",
+          }}
+        >
           {levels.inScale.map((line) => (
-            <span key={line.label} className="whitespace-nowrap">
+            <span key={line.label} className="shrink-0 whitespace-nowrap">
               <span aria-hidden style={{ color: line.color }}>
                 ■
               </span>{" "}
@@ -411,7 +443,7 @@ export default function MarketChartInner({
             ...levels.above.map((line) => ({ line, where: "above the chart" })),
             ...levels.below.map((line) => ({ line, where: "below the chart" })),
           ].map(({ line, where }) => (
-            <span key={line.label} className="whitespace-nowrap text-muted">
+            <span key={line.label} className="shrink-0 whitespace-nowrap text-muted">
               <span aria-hidden style={{ color: line.color }}>
                 ▪
               </span>{" "}
@@ -419,7 +451,7 @@ export default function MarketChartInner({
             </span>
           ))}
           {markers.length > 0 ? (
-            <span className="whitespace-nowrap text-muted">
+            <span className="shrink-0 whitespace-nowrap text-muted">
               <span aria-hidden className="text-yellow">
                 ▲
               </span>{" "}

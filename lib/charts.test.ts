@@ -133,3 +133,41 @@ describe("countdownLabel", () => {
     expect(countdownLabel(Number.NaN)).toBe("closing");
   });
 });
+
+describe("splitLevels, pinned levels", () => {
+  const hour: Candle[] = [candle(79_000, 79_200), candle(79_200, 79_400), candle(79_300, 79_100)];
+
+  // The hour spans 79,000..79,400 — 400 points.
+  it("keeps a pinned level an unpinned one would lose", () => {
+    // 79,700 stretches the scale to 700; the candles keep 400/700 = 0.57.
+    const { inScale, above } = splitLevels(hour, [
+      { price: 79_700, label: "Your entry", pinned: true },
+      { price: 80_500, label: "Some other level" },
+    ]);
+    expect(inScale.map((l) => l.label)).toEqual(["Your entry"]);
+    expect(above.map((l) => l.label)).toEqual(["Some other level"]);
+  });
+
+  it("gives up the pin rather than squash the candles", () => {
+    // 79,889 stretches the scale to 889; the candles would keep 400/889 = 0.45.
+    // 81,000 stretches it to 2,000: 400/2,000 = 0.2, below the share.
+    const { inScale, above } = splitLevels(hour, [{ price: 81_000, label: "Your entry", pinned: true }]);
+    expect(inScale).toHaveLength(0);
+    expect(above.map((l) => l.label)).toEqual(["Your entry"]);
+  });
+
+  it("gives up a pin that sits far below, and says so", () => {
+    const { inScale, below } = splitLevels(hour, [{ price: 40_000, label: "Your entry", pinned: true }]);
+    expect(inScale).toHaveLength(0);
+    expect(below.map((l) => l.label)).toEqual(["Your entry"]);
+  });
+
+  it("judges a pinned and an unpinned level independently", () => {
+    const { inScale, below } = splitLevels(hour, [
+      { price: 79_600, label: "Your entry", pinned: true },
+      { price: 40_000, label: "Liquidation" },
+    ]);
+    expect(inScale.map((l) => l.label)).toEqual(["Your entry"]);
+    expect(below.map((l) => l.label)).toEqual(["Liquidation"]);
+  });
+});

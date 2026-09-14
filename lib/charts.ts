@@ -83,6 +83,17 @@ export function countdownLabel(msLeft: number): string {
 export const LEVEL_SCALE_FACTOR = 1.5;
 
 /**
+ * The least of the price scale a pinned level may leave to the candles.
+ *
+ * Pinning your own entry is worth stretching the scale for — but only while the
+ * candles stay readable. Measured on the Trade screen: forcing an entry from
+ * eight days ago onto an hour of candles took their drawn height from 250 px to
+ * 72 px of a 420 px chart. Below this share the caption, which states the price
+ * and which way it lies, is more use than a chart nobody can read.
+ */
+export const MIN_CANDLE_SHARE = 0.4;
+
+/**
  * Splits an idea's levels into the ones that belong on the price scale and the
  * ones that would flatten the candles into a line if they were included.
  *
@@ -95,7 +106,7 @@ export const LEVEL_SCALE_FACTOR = 1.5;
  * Generic over `{ price }` so it can take chart lines without this module
  * having to know what a chart line is.
  */
-export function splitLevels<T extends { price: number }>(
+export function splitLevels<T extends { price: number; pinned?: boolean }>(
   candles: Candle[],
   levels: T[],
   factor = LEVEL_SCALE_FACTOR,
@@ -121,7 +132,16 @@ export function splitLevels<T extends { price: number }>(
   const below: T[] = [];
   for (const level of levels) {
     if (!Number.isFinite(level.price)) continue;
-    if (level.price > ceiling) above.push(level);
+    // A pinned level — your own entry — is worth stretching the scale for,
+    // because it is what the chart is being read against. But only while the
+    // candles keep at least MIN_CANDLE_SHARE of the scale: past that it would
+    // trade one unreadable chart for another, and the caption serves better.
+    if (level.pinned) {
+      const stretched = Math.max(hi, level.price) - Math.min(lo, level.price);
+      if (stretched > 0 && span / stretched >= MIN_CANDLE_SHARE) inScale.push(level);
+      else if (level.price > hi) above.push(level);
+      else below.push(level);
+    } else if (level.price > ceiling) above.push(level);
     else if (level.price < floor) below.push(level);
     else inScale.push(level);
   }

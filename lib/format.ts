@@ -27,6 +27,27 @@ export function signedMoney(value: number, digits = 2): string {
   return `${sign}$${money(Math.abs(value), digits)}`;
 }
 
+/**
+ * Big figures at a glance: 223840 → "223.8K", 2.3e9 → "2.3B". For volume and
+ * open interest, where the magnitude matters and the last digits do not.
+ */
+export function compact(value: number): string {
+  if (!Number.isFinite(value)) return "—";
+  const abs = Math.abs(value);
+  if (abs >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
+  if (abs >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+  if (abs >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+  return money(value, 1);
+}
+
+/** 3600 → "1h", 28800 → "8h", 900 → "15m". The funding period, in plain words. */
+export function everyLabel(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  if (seconds % 3600 === 0) return `${seconds / 3600}h`;
+  if (seconds % 60 === 0) return `${seconds / 60}m`;
+  return `${Math.round(seconds)}s`;
+}
+
 /** Unix ms → "just now", "12s ago", "5m ago", "3h ago", "2d ago". */
 export function timeAgo(unixMs: number, now = Date.now()): string {
   const seconds = Math.max(0, Math.round((now - unixMs) / 1000));

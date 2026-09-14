@@ -2,12 +2,18 @@
 
 import { useRef } from "react";
 
+import { money } from "@/lib/format";
 import type { Market } from "@/lib/schemas";
+
+/** What a pill shows besides its name; either figure may be missing. */
+export type PillQuote = { mid: number | null; changePct24h: number | null };
 
 type CoinPillsProps = {
   markets: Market[];
   selected: string;
   onSelect: (marketName: string) => void;
+  /** Live price and 24-hour change per market name; absent markets show the symbol alone. */
+  quotes?: Record<string, PillQuote>;
 };
 
 /**
@@ -18,7 +24,7 @@ type CoinPillsProps = {
  * reaches the form after one Tab instead of stepping through 36 coins; arrows
  * move between pills, as the ARIA radiogroup pattern expects.
  */
-export function CoinPills({ markets, selected, onSelect }: CoinPillsProps) {
+export function CoinPills({ markets, selected, onSelect, quotes = {} }: CoinPillsProps) {
   const container = useRef<HTMLDivElement | null>(null);
 
   function move(delta: number, from: number) {
@@ -41,6 +47,11 @@ export function CoinPills({ markets, selected, onSelect }: CoinPillsProps) {
     >
       {markets.map((market, index) => {
         const active = market.name === selected;
+        const quote = quotes[market.name];
+        const change = quote?.changePct24h ?? null;
+        // On the selected pill the background is the text colour, so the up and
+        // down greens would be unreadable: it states the change in its own ink.
+        const changeTone = active ? "" : change === null ? "text-muted" : change >= 0 ? "text-up" : "text-down";
         return (
           <button
             key={market.name}
@@ -59,11 +70,21 @@ export function CoinPills({ markets, selected, onSelect }: CoinPillsProps) {
               }
             }}
             className={[
-              "min-h-11 shrink-0 rounded-full border px-4 font-display text-base font-medium transition-colors",
+              "flex min-h-11 shrink-0 flex-col items-start justify-center rounded-2xl border px-3 py-1.5 font-display transition-colors",
               active ? "border-text bg-text text-bg" : "border-line bg-surface text-muted hover:text-text",
             ].join(" ")}
           >
-            {market.symbol}
+            <span className={["text-base font-medium leading-tight", active ? "" : "text-text"].join(" ")}>
+              {market.symbol}
+            </span>
+            {quote ? (
+              <span className="flex items-baseline gap-1.5 text-xs leading-tight tabular-nums">
+                <span>{quote.mid === null ? "—" : `$${money(quote.mid, quote.mid >= 100 ? 0 : 2)}`}</span>
+                <span className={changeTone}>
+                  {change === null ? "" : `${change >= 0 ? "+" : "−"}${Math.abs(change).toFixed(2)}%`}
+                </span>
+              </span>
+            ) : null}
           </button>
         );
       })}

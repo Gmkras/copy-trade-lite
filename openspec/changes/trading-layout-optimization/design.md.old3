@@ -67,10 +67,6 @@ Today `autoscaleInfoProvider` folds **every** level into the visible range, whic
 
 *Alternative rejected:* a logarithmic price scale. It keeps everything on screen but makes equal percentage moves look unequal in a product aimed at a first-time visitor.
 
-**Correction found while implementing D8 (`design.md.old3` kept).** D5 and D8 pull against each other: the rule above excludes far levels, but your own position's entry is exactly the far level you came to see. Making the entry exempt was tried and **measured as its own defect** — forcing an entry from eight days ago onto an hour of candles took their drawn height from 250 px to **72 px** of a 420 px chart, trading one unreadable chart for another.
-
-The rule that survives is conditional, not absolute: a level may be `pinned`, and a pinned level joins the scale **only while the candles keep at least `MIN_CANDLE_SHARE` (0.4) of it**. Past that it goes to the caption like any other far level. Observed on the Trade screen with a position entered at $79,889: on the 1 h range the entry is 3× the candles' span away, so it is captioned as "above the chart" and the candles keep 250 px; on the 1 w range, where the entry genuinely belongs, both the entry and the liquidation are drawn and the candles still keep 238 px. The entry price is on screen either way — the range decides whether the chart or the caption carries it. Only the entry is pinned; liquidation, which can sit 50 % away, follows the plain rule.
-
 ### D6 — Crosshair readout and countdown live outside the chart's effect
 
 Both are React state in `MarketChartInner`, fed by `chart.subscribeCrosshairMove` registered inside the existing effect and by a 1 s interval in an effect of its own. The readout renders as a DOM overlay above the canvas, not as a chart primitive.

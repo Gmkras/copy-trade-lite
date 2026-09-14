@@ -15,9 +15,9 @@ From 1024 px `/trade` SHALL lay out as a trading terminal that fills the viewpor
 - **WHEN** the user presses Tab repeatedly from the top of `/trade` at 1440 px
 - **THEN** focus moves through the coin strip, the chart controls and the bottom tabs before reaching the ticket and the account, matching left-to-right reading order
 
-#### Scenario: The phone layout is untouched
-- **WHEN** `/trade` is opened at 375 × 812
-- **THEN** the single column still reads coins, price, chart, ticket, account, and the yellow button is still reachable without horizontal scrolling
+#### Scenario: Below the desk the panes take over
+- **WHEN** `/trade` is opened at 375 × 812, or at 1024 × 640 where the screen is wide but too short for the grid
+- **THEN** the Trade and Chart panes are shown instead of the grid, the account's lists are collapsible sections rather than tabs, and the yellow button is reachable without horizontal scrolling
 
 ### Requirement: The day's statistics sit beside the price
 `/trade` SHALL show, next to the price for the selected coin, the 24-hour change as a percentage in the up or down colour, the 24-hour high, the 24-hour low, the 24-hour volume and the funding rate with its sign. Each figure SHALL carry a short plain-language label. A statistic the exchange does not provide SHALL be shown as "—", never as zero. The figures SHALL refresh at least every 30 s and SHALL keep their last good values when a refresh fails.
@@ -41,7 +41,7 @@ From 1024 px `/trade` SHALL lay out as a trading terminal that fills the viewpor
 - **THEN** the previous values stay visible and the screen does not show an error dialog
 
 ### Requirement: The chart reads like a trading instrument
-Every full-size chart SHALL place its controls above the canvas, show a crosshair readout naming the open, high, low and close of the bar under the pointer together with that bar's change, draw a volume histogram along the bottom of the plot, and count down to the current bar's close. When the account holds a position in the charted market, the chart SHALL draw that position's entry price as a labelled line, and its liquidation price when the exchange provides one. With no pointer over the chart the readout SHALL show the most recent bar. Price labels SHALL use thousands separators.
+Every full-size chart SHALL place its controls above the canvas, show a crosshair readout naming the open, high, low and close of the bar under the pointer together with that bar's change, draw a volume histogram along the bottom of the plot, and count down to the current bar's close. When the account holds a position in the charted market, the chart SHALL make that position's entry price visible — drawn as a labelled line when it fits the visible range, and named with its price in the caption when drawing it would leave the candles less than a readable share of the scale — and its liquidation price the same way, when the exchange provides one. With no pointer over the chart the readout SHALL show the most recent bar. Price labels SHALL use thousands separators.
 
 #### Scenario: Crosshair readout
 - **WHEN** the pointer moves over a candle
@@ -56,9 +56,14 @@ Every full-size chart SHALL place its controls above the canvas, show a crosshai
 - **THEN** the chart type, range and zoom controls are above the canvas, and the time axis is the lowest element of the chart
 
 #### Scenario: Your position is on the chart
-- **GIVEN** the account holds a BTC position entered at $79,889
+- **GIVEN** the account holds a BTC position entered at $79,889 and the visible candles span enough for that price to fit
 - **WHEN** BTC/USD is charted on `/trade`
-- **THEN** a labelled line sits at $79,889, distinct from the last-price label, and it disappears when the position is closed
+- **THEN** a labelled line sits at $79,889, distinct from the last-price label and from an idea's Entry colour, and it disappears when the position is closed
+
+#### Scenario: An entry too far for the range still shows its price
+- **GIVEN** the account holds a position entered far outside the visible candles' range
+- **WHEN** the chart renders
+- **THEN** the candles keep their readable height, and the caption names the entry with its price and whether it lies above or below the chart; choosing a wider range draws it on the chart instead
 
 #### Scenario: No position, no line
 - **GIVEN** the account holds no position in the charted market
@@ -68,11 +73,22 @@ Every full-size chart SHALL place its controls above the canvas, show a crosshai
 ## MODIFIED Requirements
 
 ### Requirement: The Trade screen is one-tap simple
-`/trade` SHALL show, at a 375 px viewport: coin pills (BTC/USD selected by default) whose row fades at its edge to show that it scrolls and each of which names the coin with its live price and 24-hour change in the up or down colour, a price hero for the selected coin ("1 BTC = $80,237" in large type with the change over the chart's visible range in the up or down colour) that follows the live stream when one is connected and a 5 s poll when it is not, the coin's chart with its controls **above the canvas** (chart type Candles · Line · Area, range 1h · 4h · 1d · 1w, zoom − / + / reset, plus pinch and scroll zoom) that follows the coin selection and stands at least 260 px tall on a 812 px-high phone, two large Up/Down buttons, a size picker with three chips and a free input that shows the market minimum, and exactly one yellow primary button whose label uses **the same verb as the chosen direction**, the size and the approximate dollar value (e.g. "Go Up 0.00002 BTC ≈ $1.60"); the yellow button SHALL be visible at 375 × 812 without scrolling. The price line SHALL refresh at least every 5 s. No trading jargon (no "long/short", "IOC", "bps", "margin", "buy/sell") is visible. When the coin's candles cannot be read the chart area SHALL say so in plain language and the rest of the screen SHALL keep working.
+Below the desk layout, `/trade` SHALL show coin pills (BTC/USD selected by default) whose row fades at its edge to show that it scrolls and each of which names the coin with its live price and 24-hour change in the up or down colour, and then **two panes the user switches between, Trade and Chart**, with Trade selected on arrival.
+
+The **Trade** pane SHALL show two large Up/Down buttons, a size picker with three chips and a free input that shows the market minimum, and exactly one yellow primary button whose label uses **the same verb as the chosen direction**, the size and the approximate dollar value (e.g. "Go Up 0.00002 BTC ≈ $1.60"); that button SHALL be reachable at 375 × 812 without scrolling. The **Chart** pane SHALL show a price hero for the selected coin ("1 BTC = $80,237" in large type with the change over the chart's visible range in the up or down colour) that follows the live stream when one is connected and a 5 s poll when it is not, the day's figures, and the coin's chart with its controls **above the canvas** (chart type Candles · Line · Area, range 1h · 4h · 1d · 1w, zoom − / + / reset, plus pinch and scroll zoom), at least 300 px tall on an 812 px-high phone and fitting without scrolling. Both panes SHALL follow the coin selection. The price line SHALL refresh at least every 5 s. No trading jargon (no "long/short", "IOC", "bps", "margin", "buy/sell") is visible. When the coin's candles cannot be read the chart area SHALL say so in plain language and the rest of the screen SHALL keep working.
 
 #### Scenario: Default state
-- **WHEN** the user opens `/trade`
-- **THEN** BTC/USD is selected, Up is selected, the first size chip is selected, the price hero shows a dollar value, each coin pill shows a price and a coloured change, the BTC chart renders with Candles and 1h selected and its controls above it, and the yellow button is enabled with a label naming the size and dollar value, all visible at 375 × 812 without scrolling
+- **WHEN** the user opens `/trade` at 375 × 812
+- **THEN** BTC/USD is selected, the Trade pane is selected, Up is selected, the first size chip is selected, each coin pill shows a price and a coloured change, and the yellow button is enabled with a label naming the size and dollar value, reachable without scrolling
+
+#### Scenario: The chart is one tap away and fills the screen
+- **WHEN** the user taps Chart at 375 × 812
+- **THEN** the price hero, the day's figures, the chart controls and a chart at least 300 px tall are shown, all without scrolling, and the order ticket is not on screen
+
+#### Scenario: Switching back keeps the order in progress
+- **GIVEN** the user has chosen Down and typed a size
+- **WHEN** they tap Chart and then Trade again
+- **THEN** Down is still chosen and the size is still typed; nothing was submitted
 
 #### Scenario: The price moves on its own
 - **GIVEN** the stream is connected and BTC/USD is selected
