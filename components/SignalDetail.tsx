@@ -104,11 +104,10 @@ export function SignalDetail({ initialSignal, initialCopies }: SignalDetailProps
         ) : (
           <p className="p-4 text-sm text-muted">{detail.data?.candlesError ?? "No price history yet."}</p>
         )}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 pb-1 pt-2 text-sm">
-          <span><span className="text-yellow">■</span> Entry ${money(signal.entryPrice, digits)}</span>
-          <span><span className="text-up">■</span> Take profit ${money(signal.tpPrice, digits)}</span>
-          <span><span className="text-down">■</span> Stop loss ${money(signal.slPrice, digits)}</span>
-          <span className="ml-auto text-muted">
+        {/* The three level names now come from the chart's own caption
+            (design D3), so only the live price is left to say here. */}
+        <div className="flex flex-wrap items-center justify-end px-2 pb-1 pt-2 text-sm">
+          <span className="text-muted">
             {price ? `now $${money(price.mid, digits)}` : detail.data?.priceError ? "price unavailable" : ""}
             {detail.stale ? " · couldn't refresh" : ""}
           </span>

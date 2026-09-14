@@ -63,6 +63,71 @@ export function rangeLabel(range: CandleRange): string {
   }
 }
 
+/**
+ * Time left until the current bar closes, as a terminal shows it: "4:07" under
+ * an hour, "2h 15m" over it, and "closing" once the bar is due — a bar whose
+ * close has passed is simply waiting for the next poll, never a negative clock.
+ */
+export function countdownLabel(msLeft: number): string {
+  if (!Number.isFinite(msLeft) || msLeft <= 0) return "closing";
+  const totalSeconds = Math.ceil(msLeft / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  if (minutes >= 60) return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  return `${minutes}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+/**
+ * How far beyond the candles' own range a level may sit and still be folded
+ * into the price scale, as a multiple of that range (design D5).
+ */
+export const LEVEL_SCALE_FACTOR = 1.5;
+
+/**
+ * Splits an idea's levels into the ones that belong on the price scale and the
+ * ones that would flatten the candles into a line if they were included.
+ *
+ * Forcing every level into view is what turned a card with a −50 % stop loss
+ * into a flat line: the scale stretched to 40,000 and the hour of candles
+ * collapsed into one pixel. A level further than `factor` times the candles'
+ * own range is left off the scale instead, and the caller reports it in the
+ * caption rather than drawing it.
+ *
+ * Generic over `{ price }` so it can take chart lines without this module
+ * having to know what a chart line is.
+ */
+export function splitLevels<T extends { price: number }>(
+  candles: Candle[],
+  levels: T[],
+  factor = LEVEL_SCALE_FACTOR,
+): { inScale: T[]; above: T[]; below: T[] } {
+  const all = { inScale: levels, above: [] as T[], below: [] as T[] };
+  if (candles.length === 0 || levels.length === 0) return all;
+
+  let lo = Number.POSITIVE_INFINITY;
+  let hi = Number.NEGATIVE_INFINITY;
+  for (const candle of candles) {
+    if (Number.isFinite(candle.l) && candle.l < lo) lo = candle.l;
+    if (Number.isFinite(candle.h) && candle.h > hi) hi = candle.h;
+  }
+  const span = hi - lo;
+  // No usable range (no finite candles, or a market that has not moved at all):
+  // there is nothing to flatten, so nothing is excluded.
+  if (!Number.isFinite(span) || span <= 0) return all;
+
+  const floor = lo - factor * span;
+  const ceiling = hi + factor * span;
+  const inScale: T[] = [];
+  const above: T[] = [];
+  const below: T[] = [];
+  for (const level of levels) {
+    if (!Number.isFinite(level.price)) continue;
+    if (level.price > ceiling) above.push(level);
+    else if (level.price < floor) below.push(level);
+    else inScale.push(level);
+  }
+  return { inScale, above, below };
+}
+
 /** Change from the first open to the last close of the candles shown; null without data. */
 export function rangeChange(candles: Candle[]): { abs: number; pct: number } | null {
   const first = candles[0];

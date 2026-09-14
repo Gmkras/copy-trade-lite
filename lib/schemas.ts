@@ -77,6 +77,36 @@ export type Market = {
   maxOrderSize: number;
 };
 
+/**
+ * GET /api/tickers item — one row per tradable market, for the coin strip.
+ * A figure the exchange could not quote is `null`, never 0: the row stays so
+ * the strip never changes shape because one fetch failed.
+ */
+export type Ticker = {
+  market: string;
+  symbol: string;
+  mid: number | null;
+  /** 24-hour change as a percentage (can be negative). */
+  changePct24h: number | null;
+};
+
+/**
+ * GET /api/stats/[market] — the day, for the statistics row beside the price.
+ * Every field is nullable for the same reason as `Ticker`; the interface shows
+ * "—" for a null and never invents a zero.
+ */
+export type MarketStats = {
+  market: string;
+  changePct24h: number | null;
+  high24h: number | null;
+  low24h: number | null;
+  volume24h: number | null;
+  openInterest: number | null;
+  fundingRateBps: number | null;
+  isFundingPositive: boolean | null;
+  fundingPeriodS: number | null;
+};
+
 /** GET /api/price/[market]. */
 export type Price = {
   market: string;

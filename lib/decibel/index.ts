@@ -16,9 +16,11 @@ export {
   getCandlesByRange,
   getCandlesFor,
   getCandlesSince,
+  getMarketStats,
   getPrice,
   getPrices,
   listMarkets,
+  listTickers,
   toMarket,
 } from "./markets";
 export { TradeError, humanizeSdkError, errorText, isNotFoundError, type TradeErrorCode } from "./errors";
