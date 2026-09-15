@@ -49,7 +49,10 @@ export const MEMORY_STEPS: MemoryStep[] = [
   {
     stack: [{ fn: "placeMarketOrder", locals: "input, deps" }],
     heap: [],
-    caption: "You tap the yellow button. One frame is pushed, holding its arguments.",
+    // Names the screen and the action rather than the colour: a reader on
+    // /learn cannot see the Trade screen's button, so "the yellow button"
+    // reads as if it meant one of the controls right here.
+    caption: "Someone taps Go Up on the Trade screen. One frame is pushed, holding its arguments.",
   },
   {
     stack: [{ fn: "placeMarketOrder", locals: "input, deps, markets → heap" }],
